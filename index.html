@@ -1,0 +1,2579 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodTaxa - Análisis de Microbioma y Alimentación</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'scientific-blue': '#1e3a8a',
+                        'scientific-light': '#3b82f6',
+                        'neutral-warm': '#f8fafc',
+                        'data-green': '#10b981',
+                        'data-red': '#ef4444'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .relation-positive {
+            background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+        }
+        .relation-negative {
+            background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+        }
+    </style>
+</head>
+<body class="bg-neutral-warm min-h-screen font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="flex items-center justify-between px-6 py-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-scientific-blue rounded-lg flex items-center justify-center">
+                    <i class="fas fa-dna text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900">FoodTaxa</h1>
+                    <p class="text-sm text-gray-500">Análisis de Microbioma y Alimentación</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-600">Base de datos: 42 artículos científicos</span>
+                <div class="w-3 h-3 bg-data-green rounded-full animate-pulse"></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white shadow-lg border-r border-gray-200">
+            <nav class="p-4">
+                <div class="space-y-2">
+                    <button onclick="showSection('taxon')" 
+                            class="nav-item w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg transition-colors duration-200 bg-scientific-blue text-white">
+                        <i class="fas fa-microscope"></i>
+                        <span class="font-medium">Análisis por Taxón</span>
+                    </button>
+                    <button onclick="showSection('food')" 
+                            class="nav-item w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg transition-colors duration-200 text-gray-700 hover:bg-gray-100">
+                        <i class="fas fa-utensils"></i>
+                        <span class="font-medium">Análisis por Comida</span>
+                    </button>
+                </div>
+                
+                <!-- Stats Section -->
+                <div class="mt-8 p-4 bg-gray-50 rounded-lg">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-3">Estadísticas</h3>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Taxones únicos:</span>
+                            <span class="font-semibold">156</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Alimentos únicos:</span>
+                            <span class="font-semibold">89</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Relaciones (+):</span>
+                            <span class="font-semibold text-data-green">287</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Relaciones (-):</span>
+                            <span class="font-semibold text-data-red">156</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-hidden">
+            <!-- Taxon Section -->
+            <div id="taxon-section" class="h-full overflow-y-auto scrollbar-thin">
+                <div class="p-6">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">Análisis por Taxón</h2>
+                        <p class="text-gray-600">Explore las relaciones entre taxones microbianos y alimentos</p>
+                    </div>
+
+                    <!-- Módulo 1: Búsqueda y Selección de Taxón - VERSIÓN PREDICTIVA -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-search text-scientific-blue mr-2"></i>
+                                Búsqueda y Selección de Taxón
+                            </h3>
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Buscar Taxón (ID o Nombre)
+                                    </label>
+                                    <div class="relative">
+                                        <input type="text" 
+                                            id="taxon-search-input" 
+                                            placeholder="Ej: 216851, Bifidobacterium, Lacto..."
+                                            class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-scientific-blue focus:border-transparent"
+                                            autocomplete="off">
+                                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                            <i class="fas fa-search text-gray-400"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Dropdown de sugerencias -->
+                                    <div id="taxon-suggestions" class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg hidden max-h-60 overflow-y-auto scrollbar-thin">
+                                        <!-- Sugerencias dinámicas aquí -->
+                                    </div>
+                                    
+                                    <!-- Indicador de carga -->
+                                    <div id="search-loading" class="absolute right-12 top-9 hidden">
+                                        <i class="fas fa-spinner fa-spin text-scientific-blue"></i>
+                                    </div>
+                                    
+                                    <!-- Mensaje de no resultados -->
+                                    <div id="no-results" class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg p-3 text-sm text-gray-500 text-center hidden">
+                                        No se encontraron taxones que coincidan con su búsqueda
+                                    </div>
+                                </div>
+                                
+                                <div id="taxon-info" class="bg-gray-50 rounded-lg p-4 hidden">
+                                    <h4 class="font-medium text-gray-900 mb-2">Información del Taxón</h4>
+                                    <div id="taxon-details" class="space-y-1 text-sm text-gray-600">
+                                        <!-- Información del taxón seleccionado -->
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Búsqueda reciente y sugerencias populares -->
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                <span class="text-xs text-gray-500 mr-2">Búsquedas populares:</span>
+                                <button onclick="selectTaxonFromTag('216851')" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors">
+                                    Faecalibacterium
+                                </button>
+                                <button onclick="selectTaxonFromTag('1678')" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors">
+                                    Bifidobacterium
+                                </button>
+                                <button onclick="selectTaxonFromTag('1578')" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors">
+                                    Lactobacillus
+                                </button>
+                                <button onclick="selectTaxonFromTag('841')" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors">
+                                    Roseburia
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Módulo 2: Relaciones del Taxón con las Comidas -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-table text-scientific-blue mr-2"></i>
+                                Relaciones con Alimentos
+                            </h3>
+                            <div id="relations-content" class="hidden">
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <!-- Relaciones Positivas -->
+                                    <div class="bg-green-50 rounded-lg border border-green-200">
+                                        <div class="p-4 border-b border-green-200">
+                                            <h4 class="font-medium text-green-800 flex items-center">
+                                                <i class="fas fa-plus-circle mr-2"></i>
+                                                Relaciones Positivas
+                                            </h4>
+                                        </div>
+                                        <div class="p-4">
+                                            <div id="positive-relations" class="space-y-2">
+                                                <!-- Contenido dinámico -->
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Relaciones Negativas -->
+                                    <div class="bg-red-50 rounded-lg border border-red-200">
+                                        <div class="p-4 border-b border-red-200">
+                                            <h4 class="font-medium text-red-800 flex items-center">
+                                                <i class="fas fa-minus-circle mr-2"></i>
+                                                Relaciones Negativas
+                                            </h4>
+                                        </div>
+                                        <div class="p-4">
+                                            <div id="negative-relations" class="space-y-2">
+                                                <!-- Contenido dinámico -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Módulo 3: Visualización Gráfica -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-project-diagram text-scientific-blue mr-2"></i>
+                                Visualización de Red de Relaciones
+                            </h3>
+                            <div id="network-content" class="hidden">
+                                <div class="bg-gray-50 rounded-lg p-8 text-center min-h-64 flex items-center justify-center">
+                                    <div id="network-visualization" class="w-full">
+                                        <div class="text-gray-500 mb-4">
+                                            <i class="fas fa-network-wired text-4xl mb-2"></i>
+                                            <p>Diagrama de red interactivo</p>
+                                            <p class="text-sm">Nodo central: <span id="central-node">Taxón seleccionado</span></p>
+                                        </div>
+                                        <div id="network-nodes" class="flex flex-wrap justify-center items-center gap-4 mt-6">
+                                            <!-- Nodos generados dinámicamente -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Módulo 4: Datos de Salud -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-heartbeat text-scientific-blue mr-2"></i>
+                                Información de Salud Asociada
+                            </h3>
+                            <div id="health-content" class="hidden">
+                                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                    <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                                        <h4 class="font-medium text-blue-800 mb-2">Estado de Salud</h4>
+                                        <div id="health-status" class="text-sm text-blue-700">
+                                            <!-- Contenido dinámico -->
+                                        </div>
+                                    </div>
+                                    <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                                        <h4 class="font-medium text-purple-800 mb-2">Ontología de Enfermedades</h4>
+                                        <div id="disease-ontology" class="text-sm text-purple-700">
+                                            <!-- Contenido dinámico -->
+                                        </div>
+                                    </div>
+                                    <div class="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                                        <h4 class="font-medium text-amber-800 mb-2">Implicaciones</h4>
+                                        <div id="health-implications" class="text-sm text-amber-700">
+                                            <!-- Contenido dinámico -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Food Section -->
+            <div id="food-section" class="h-full overflow-y-auto scrollbar-thin hidden">
+                <div class="p-6">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">Análisis por Comida</h2>
+                        <p class="text-gray-600">Explore las relaciones entre alimentos y taxones microbianos</p>
+                    </div>
+
+                    <!-- Módulo 1: Búsqueda y Selección de Comida -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-search text-scientific-blue mr-2"></i>
+                                Búsqueda y Selección de Alimento
+                            </h3>
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Seleccionar Alimento
+                                    </label>
+                                    <select id="food-selector" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-scientific-blue focus:border-transparent">
+                                        <option value="">Seleccione un alimento...</option>
+                                        <option value="Dairy products">Productos lácteos</option>
+                                        <option value="Walnut">Nueces</option>
+                                        <option value="Animal based foods">Alimentos de origen animal</option>
+                                        <option value="Plant based foods">Alimentos de origen vegetal</option>
+                                        <option value="WG wheat">Trigo integral</option>
+                                        <option value="Fast Food">Comida rápida</option>
+                                        <option value="Red wine">Vino tinto</option>
+                                        <option value="Fish">Pescado</option>
+                                        <option value="Legumes">Legumbres</option>
+                                        <option value="Almond">Almendras</option>
+                                        <option value="Fiber">Fibra</option>
+                                        <option value="Oat">Avena</option>
+                                    </select>
+                                </div>
+                                <div id="food-info" class="bg-gray-50 rounded-lg p-4 hidden">
+                                    <h4 class="font-medium text-gray-900 mb-2">Información del Alimento</h4>
+                                    <div id="food-details" class="space-y-1 text-sm text-gray-600">
+                                        <!-- Información del alimento seleccionado -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Módulo 2: Opciones de Exploración y Filtrado -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-filter text-scientific-blue mr-2"></i>
+                                Filtros Avanzados
+                            </h3>
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Buscar por nombre
+                                    </label>
+                                    <input type="text" id="food-search" placeholder="Ej: dairy, meat, fruit..." 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-scientific-blue focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Tipo de relación
+                                    </label>
+                                    <select id="relation-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-scientific-blue focus:border-transparent">
+                                        <option value="">Todas las relaciones</option>
+                                        <option value="positive">Solo positivas (+)</option>
+                                        <option value="negative">Solo negativas (-)</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-end">
+                                    <button onclick="applyFoodFilters()" class="w-full bg-scientific-blue text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200">
+                                        <i class="fas fa-search mr-2"></i>
+                                        Aplicar Filtros
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Módulo 3: Relaciones Filtradas -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-table text-scientific-blue mr-2"></i>
+                                Relaciones Alimento-Taxón
+                            </h3>
+                            <div id="food-relations-content" class="hidden">
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <!-- Relaciones Positivas -->
+                                    <div class="bg-green-50 rounded-lg border border-green-200">
+                                        <div class="p-4 border-b border-green-200">
+                                            <h4 class="font-medium text-green-800 flex items-center">
+                                                <i class="fas fa-plus-circle mr-2"></i>
+                                                Taxones Incrementados
+                                            </h4>
+                                        </div>
+                                        <div class="p-4 max-h-64 overflow-y-auto scrollbar-thin">
+                                            <div id="food-positive-relations" class="space-y-2">
+                                                <!-- Contenido dinámico -->
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Relaciones Negativas -->
+                                    <div class="bg-red-50 rounded-lg border border-red-200">
+                                        <div class="p-4 border-b border-red-200">
+                                            <h4 class="font-medium text-red-800 flex items-center">
+                                                <i class="fas fa-minus-circle mr-2"></i>
+                                                Taxones Disminuidos
+                                            </h4>
+                                        </div>
+                                        <div class="p-4 max-h-64 overflow-y-auto scrollbar-thin">
+                                            <div id="food-negative-relations" class="space-y-2">
+                                                <!-- Contenido dinámico -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Módulo 4: Visualización Gráfica por Comida -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-project-diagram text-scientific-blue mr-2"></i>
+                                Red de Relaciones del Alimento
+                            </h3>
+                            <div id="food-network-content" class="hidden">
+                                <div class="bg-gray-50 rounded-lg p-8 text-center min-h-64 flex items-center justify-center">
+                                    <div id="food-network-visualization" class="w-full">
+                                        <div class="text-gray-500 mb-4">
+                                            <i class="fas fa-network-wired text-4xl mb-2"></i>
+                                            <p>Diagrama de red del alimento</p>
+                                            <p class="text-sm">Nodo central: <span id="food-central-node">Alimento seleccionado</span></p>
+                                        </div>
+                                        <div id="food-network-nodes" class="flex flex-wrap justify-center items-center gap-4 mt-6">
+                                            <!-- Nodos generados dinámicamente -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ===== FOODTAXA DATABASE - TOP 40 TAXONES MÁS RELEVANTES =====
+        // Generado desde foodtaxa0_42_clean.tsv basado en frecuencia, diversidad de alimentos y número de estudios
+        // Score de relevancia = frecuencia × diversidad_alimentos × número_artículos × bonus_balance
+
+        const taxonDatabase = [
+            { id: "1678", name: "Bifidobacterium", fullName: "Bifidobacteria", phylum: "Actinobacteria" },
+            { id: "1263", name: "Ruminococcus", fullName: "Ruminococcus", phylum: "Firmicutes" },
+            { id: "853", name: "Faecalibacterium prausnitzii", fullName: "Faecalibacterium prausnitzii", phylum: "Firmicutes" },
+            { id: "841", name: "Roseburia", fullName: "Roseburia", phylum: "Firmicutes" },
+            { id: "216851", name: "Faecalibacterium", fullName: "Faecalibacterium", phylum: "Firmicutes" },
+            { id: "572511", name: "Blautia", fullName: "Blautia", phylum: "Firmicutes" },
+            { id: "1485", name: "Clostridium", fullName: "Lachnoclostridium", phylum: "Firmicutes" },
+            { id: "186803", name: "Lachnospiraceae", fullName: "Lachnospiraceae", phylum: "Firmicutes" },
+            { id: "816", name: "Bacteroides", fullName: "Bacteroides", phylum: "Bacteroidetes" },
+            { id: "1301", name: "Streptococcus", fullName: "Streptococcus", phylum: "Firmicutes" },
+            { id: "375288", name: "Parabacteroides", fullName: "Parabacteroides", phylum: "Bacteroidetes" },
+            { id: "216572", name: "Oscillospiraceae", fullName: "Ruminococcaceae", phylum: "Firmicutes" },
+            { id: "102106", name: "Collinsella", fullName: "Collinsella", phylum: "Actinobacteria" },
+            { id: "1350", name: "Enterococcus", fullName: "Enterococci", phylum: "Firmicutes" },
+            { id: "301301", name: "Roseburia hominis", fullName: "Roseburia hominis", phylum: "Firmicutes" },
+            { id: "39948", name: "Dialister", fullName: "Dialister", phylum: "Firmicutes" },
+            { id: "1239", name: "Bacillota", fullName: "Firmicutes", phylum: "Firmicutes" },
+            { id: "1578", name: "Lactobacillus", fullName: "Lactobacilli", phylum: "Firmicutes" },
+            { id: "28050", name: "Lachnospira", fullName: "Lachnospira", phylum: "Firmicutes" },
+            { id: "35832", name: "Bilophila", fullName: "Bilophila", phylum: "Proteobacteria" },
+            { id: "119852", name: "Oscillospira", fullName: "Oscillospira", phylum: "Firmicutes" },
+            { id: "976", name: "Bacteroidota", fullName: "Bacteroidetes", phylum: "Bacteroidetes" },
+            { id: "838", name: "Prevotella", fullName: "Prevotella", phylum: "Bacteroidetes" },
+            { id: "817", name: "Bacteroides fragilis", fullName: "Bacteroides fragilis", phylum: "Bacteroidetes" },
+            { id: "29465", name: "Veillonella", fullName: "Veillonella", phylum: "Firmicutes" },
+            { id: "1407607", name: "Fusicatenibacter", fullName: "Fusicatenibacter", phylum: "Firmicutes" },
+            { id: "580596", name: "Butyricicoccus", fullName: "Butyricicoccus", phylum: "Firmicutes" },
+            { id: "128827", name: "Erysipelotrichaceae", fullName: "Erysipelotrichaceae", phylum: "Firmicutes" },
+            { id: "561", name: "Escherichia", fullName: "Escherichia", phylum: "Proteobacteria" },
+            { id: "620", name: "Shigella", fullName: "Shigella", phylum: "Proteobacteria" },
+            { id: "1730", name: "Eubacterium", fullName: "Eubacterium", phylum: "Firmicutes" },
+            { id: "28026", name: "Bifidobacterium pseudocatenulatum", fullName: "Bifidobacterium pseudocatenulatum", phylum: "Actinobacteria" },
+            { id: "1224", name: "Pseudomonadota", fullName: "Proteobacteria", phylum: "Proteobacteria" },
+            { id: "990719", name: "Christensenellaceae", fullName: "Christensenellaceae", phylum: "Firmicutes" },
+            { id: "189330", name: "Dorea", fullName: "Dorea", phylum: "Firmicutes" },
+            { id: "171550", name: "Rikenellaceae", fullName: "Rikenellaceae", phylum: "Bacteroidetes" },
+            { id: "1357", name: "Lactococcus", fullName: "Lactococcus", phylum: "Firmicutes" },
+            { id: "35833", name: "Bilophila wadsworthia", fullName: "Bilophila wadsworthia", phylum: "Proteobacteria" },
+            { id: "1358", name: "Lactococcus lactis", fullName: "Lactococcus lactis", phylum: "Firmicutes" },
+            { id: "33039", name: "Ruminococcus torques", fullName: "Ruminococcus torques", phylum: "Firmicutes" }
+        ];
+
+        // ===== 2. FOOD TAXA DATA (relaciones taxón -> alimentos) =====
+        const foodTaxaData = {
+            // 1. Bifidobacterium (ID: 1678) - Score: 5940
+            "1678": {
+                name: "Bifidobacterium",
+                positiveRelations: [
+                    { food: "WG barley", occurrences: 4, articles: ["10.1038/ismej.2012.104"] },
+                    { food: "Fiber", occurrences: 3, articles: ["10.3389/fcimb.2023.1069954"] },
+                    { food: "Dairy products", occurrences: 3, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Red wine", occurrences: 2, articles: ["10.3945/ajcn.111.027847"] },
+                    { food: "Walnut", occurrences: 2, articles: ["10.3390/nu10020244", "10.3390/nu11102483"] },
+                    { food: "WG wheat", occurrences: 2, articles: ["10.1017/S0007114507793923"] },
+                    { food: "Apple", occurrences: 1, articles: ["10.3390/nu9060533"] },
+                    { food: "Milk", occurrences: 1, articles: ["10.4161/gmic.21578"] },
+                    { food: "Oat", occurrences: 1, articles: ["10.3389/fimmu.2021.787797"] }
+                ],
+                negativeRelations: [
+                    { food: "Plant based foods", occurrences: 2, articles: ["10.1186/s13073-022-01015-z"] },
+                    { food: "Sugar", occurrences: 2, articles: ["10.3390/nu13051496"] },
+                    { food: "Walnut", occurrences: 1, articles: ["10.1093/jn/nxy004"] },
+                    { food: "Red wine", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Low fat diet", occurrences: 1, articles: ["10.1093/ajcn/nqaa046"] },
+                    { food: "Almond", occurrences: 1, articles: ["10.3390/nu10020126"] },
+                    { food: "Peanut", occurrences: 1, articles: ["10.3390/nu16193313"] },
+                    { food: "Nuts", occurrences: 1, articles: ["10.1093/ajcn/nqz270"] },
+                    { food: "Seeds", occurrences: 1, articles: ["10.1093/ajcn/nqz270"] },
+                    { food: "Legumes", occurrences: 1, articles: ["10.1093/ajcn/nqz270"] },
+                    { food: "Human Milk", occurrences: 1, articles: ["10.1001/jamanetworkopen.2023.1165"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria probiótica beneficiosa, importante para la salud digestiva y el sistema inmune"
+                }
+            },
+
+            // 2. Ruminococcus (ID: 1263) - Score: 1814
+            "1263": {
+                name: "Ruminococcus",
+                positiveRelations: [
+                    { food: "Fish", occurrences: 2, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Salmon", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Cod", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Animal based foods", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Fast Food", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Fiber", occurrences: 1, articles: ["10.3389/fcimb.2023.1069954"] },
+                    { food: "Almond", occurrences: 1, articles: ["10.3390/nu12103036"] },
+                    { food: "Brown yogurt", occurrences: 1, articles: ["10.1039/d1fo03885k"] },
+                    { food: "Fish oil", occurrences: 1, articles: ["10.1136/gutjnl-2020-321643"] },
+                    { food: "Dairy products", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] }
+                ],
+                negativeRelations: [
+                    { food: "Walnut", occurrences: 1, articles: ["10.1093/jn/nxy004"] },
+                    { food: "Plant based foods", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Low fat diet", occurrences: 1, articles: ["10.1093/ajcn/nqaa046"] },
+                    { food: "Peanut", occurrences: 1, articles: ["10.3390/nu16193313"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria productora de ácidos grasos de cadena corta, importante para la salud intestinal"
+                }
+            },
+
+            // 3. Faecalibacterium prausnitzii (ID: 853) - Score: 1373
+            "853": {
+                name: "Faecalibacterium prausnitzii",
+                positiveRelations: [
+                    { food: "Coix seed", occurrences: 2, articles: ["10.3390/nu13114079"] },
+                    { food: "Apple", occurrences: 1, articles: ["10.3390/nu9060533"] },
+                    { food: "Red wine", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Fruits", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Chickpea", occurrences: 1, articles: ["10.3920/BM2009.0027"] },
+                    { food: "Fermented vegetables", occurrences: 1, articles: ["10.1371/journal.pone.0275275"] },
+                    { food: "Oily fish", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] }
+                ],
+                negativeRelations: [
+                    { food: "Dairy products", occurrences: 6, articles: ["10.3390/nu12072129"] },
+                    { food: "Soft drinks", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Sweets", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Orange juice", occurrences: 1, articles: ["10.1021/acs.jafc.8b05408"] },
+                    { food: "Fish oil", occurrences: 1, articles: ["10.1136/gutjnl-2020-321643"] },
+                    { food: "Brown yogurt", occurrences: 1, articles: ["10.1039/d1fo03885k"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria clave productora de butirato, asociada con salud intestinal y efectos antiinflamatorios"
+                }
+            },
+
+            // 4. Roseburia (ID: 841) - Score: 1134
+            "841": {
+                name: "Roseburia",
+                positiveRelations: [
+                    { food: "WG barley", occurrences: 4, articles: ["10.1038/ismej.2012.104"] },
+                    { food: "Walnut", occurrences: 2, articles: ["10.1093/jn/nxy004"] },
+                    { food: "Almond", occurrences: 2, articles: ["10.3390/nu12103036", "10.3390/nu10020126"] },
+                    { food: "Meat", occurrences: 2, articles: ["10.3390/microorganisms9040727"] },
+                    { food: "Oat", occurrences: 2, articles: ["10.3389/fimmu.2021.787797"] },
+                    { food: "Peanut", occurrences: 1, articles: ["10.1016/j.clnu.2022.08.004"] },
+                    { food: "Chopped almonds", occurrences: 1, articles: ["10.3390/nu10020126"] },
+                    { food: "Fiber", occurrences: 1, articles: ["10.1093/ajcn/nqz270"] }
+                ],
+                negativeRelations: [],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria productora de butirato, asociada con beneficios metabólicos y salud intestinal"
+                }
+            },
+
+            // 5. Faecalibacterium (ID: 216851) - Score: 983
+            "216851": {
+                name: "Faecalibacterium",
+                positiveRelations: [
+                    { food: "Animal based foods", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Butter", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "sunflower oil", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Walnut", occurrences: 1, articles: ["10.1093/jn/nxy004"] },
+                    { food: "Meat", occurrences: 1, articles: ["10.3390/microorganisms9040727"] },
+                    { food: "Coix seed", occurrences: 1, articles: ["10.3390/nu13114079"] },
+                    { food: "A&V Fats", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Fiber", occurrences: 1, articles: ["10.1093/ajcn/nqz270"] }
+                ],
+                negativeRelations: [
+                    { food: "Dairy products", occurrences: 3, articles: ["10.3390/nu12072129"] },
+                    { food: "Fats", occurrences: 3, articles: ["10.1136/gutjnl-2018-317609"] },
+                    { food: "Low fat diet", occurrences: 1, articles: ["10.1136/gutjnl-2018-317609"] },
+                    { food: "Mod-High Protein diet", occurrences: 1, articles: ["10.1136/gutjnl-2018-317609"] },
+                    { food: "High fat diet", occurrences: 1, articles: ["10.1136/gutjnl-2018-317609"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Género bacteriano clave productor de butirato, marcador de salud intestinal"
+                }
+            },
+
+            // 6. Blautia (ID: 572511) - Score: 950
+            "572511": {
+                name: "Blautia",
+                positiveRelations: [
+                    { food: "WG barley", occurrences: 2, articles: ["10.1038/ismej.2012.104"] },
+                    { food: "Brown Rice", occurrences: 1, articles: ["10.1038/ismej.2012.104"] },
+                    { food: "A&V Fats", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Animal based foods", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Walnut", occurrences: 1, articles: ["10.3390/nu11102483"] },
+                    { food: "Fiber", occurrences: 1, articles: ["10.3389/fcimb.2023.1069954"] }
+                ],
+                negativeRelations: [
+                    { food: "Walnut", occurrences: 1, articles: ["10.3390/nu10020244"] },
+                    { food: "Plant based foods", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Fats", occurrences: 1, articles: ["10.1136/gutjnl-2018-317609"] },
+                    { food: "Low fat diet", occurrences: 1, articles: ["10.1093/ajcn/nqaa046"] },
+                    { food: "High fat diet", occurrences: 1, articles: ["10.1136/gutjnl-2018-317609"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria productora de ácidos grasos de cadena corta, importante para el metabolismo intestinal"
+                }
+            },
+
+            // 7. Clostridium (ID: 1485) - Score: 500
+            "1485": {
+                name: "Clostridium",
+                positiveRelations: [
+                    { food: "A&V Fats", occurrences: 2, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Fish", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Salmon", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Cod", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Dairy products", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Walnut", occurrences: 1, articles: ["10.1093/jn/nxy004"] },
+                    { food: "WG cereal", occurrences: 1, articles: ["10.3390/nu13051496"] },
+                    { food: "Almond", occurrences: 1, articles: ["10.3390/nu10020126"] },
+                    { food: "Orange juice", occurrences: 1, articles: ["10.1021/acs.jafc.8b05408"] },
+                    { food: "Oat", occurrences: 1, articles: ["10.3389/fimmu.2021.787797"] }
+                ],
+                negativeRelations: [],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Género diverso de bacterias anaerobias, algunas especies beneficiosas para la salud intestinal"
+                }
+            },
+
+            // 8. Lachnospiraceae (ID: 186803) - Score: 461
+            "186803": {
+                name: "Lachnospiraceae",
+                positiveRelations: [
+                    { food: "Fruit", occurrences: 1, articles: ["10.3390/nu13124350"] },
+                    { food: "Vegetable", occurrences: 1, articles: ["10.3390/nu13124350"] },
+                    { food: "Butter", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Mediterranean Diet", occurrences: 1, articles: ["10.1016/j.nutres.2020.03.005"] },
+                    { food: "Orange juice", occurrences: 1, articles: ["10.1021/acs.jafc.8b05408"] }
+                ],
+                negativeRelations: [
+                    { food: "Fast Food", occurrences: 1, articles: ["10.1016/j.nutres.2020.03.005"] },
+                    { food: "Walnut", occurrences: 1, articles: ["10.3390/nu11102483"] },
+                    { food: "Low fat diet", occurrences: 1, articles: ["10.1093/ajcn/nqaa046"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Familia bacteriana productora de butirato, asociada con salud intestinal y metabolismo"
+                }
+            },
+
+            // 9. Bacteroides (ID: 816) - Score: 432
+            "816": {
+                name: "Bacteroides",
+                positiveRelations: [
+                    { food: "Red wine", occurrences: 2, articles: ["10.3945/ajcn.111.027847"] },
+                    { food: "WG cereal", occurrences: 1, articles: ["10.3390/nu13051496"] },
+                    { food: "Milk", occurrences: 1, articles: ["10.4161/gmic.21578"] },
+                    { food: "Fiber", occurrences: 1, articles: ["10.3389/fcimb.2023.1069954"] },
+                    { food: "Fats", occurrences: 1, articles: ["10.1136/gutjnl-2018-317609"] },
+                    { food: "High fat diet", occurrences: 1, articles: ["10.1136/gutjnl-2018-317609"] },
+                    { food: "Nuts", occurrences: 1, articles: ["10.1093/ajcn/nqz270"] },
+                    { food: "Seeds", occurrences: 1, articles: ["10.1093/ajcn/nqz270"] },
+                    { food: "Legumes", occurrences: 1, articles: ["10.1093/ajcn/nqz270"] }
+                ],
+                negativeRelations: [],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Género bacteriano dominante en el intestino, importante para la digestión de fibras complejas"
+                }
+            },
+
+            // 10. Streptococcus (ID: 1301) - Score: 240
+            "1301": {
+                name: "Streptococcus",
+                positiveRelations: [
+                    { food: "Dairy products", occurrences: 4, articles: ["10.3390/nu12072129", "10.3390/nu15163645"] },
+                    { food: "Low fat diet", occurrences: 1, articles: ["10.1007/s00394-021-02508-0"] },
+                    { food: "Legumes", occurrences: 1, articles: ["10.3390/nu13113992"] }
+                ],
+                negativeRelations: [
+                    { food: "Animal based foods", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Plant based foods", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Género bacteriano diverso, algunas especies son probióticas utilizadas en productos lácteos fermentados"
+                }
+            },
+
+            // 11. Parabacteroides (ID: 375288) - Score: 202
+            "375288": {
+                name: "Parabacteroides",
+                positiveRelations: [
+                    { food: "Fast Food", occurrences: 2, articles: ["10.1016/j.nutres.2020.03.005"] },
+                    { food: "Orange juice", occurrences: 1, articles: ["10.1021/acs.jafc.8b05408"] }
+                ],
+                negativeRelations: [
+                    { food: "Mediterranean Diet", occurrences: 2, articles: ["10.1016/j.nutres.2020.03.005"] },
+                    { food: "Almond", occurrences: 1, articles: ["10.3390/nu10020126"] },
+                    { food: "Legumes", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Bread", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Género bacteriano del grupo Bacteroides, puede aumentar con dietas altas en grasas"
+                }
+            },
+
+            // 12. Oscillospiraceae (ID: 216572) - Score: 192
+            "216572": {
+                name: "Oscillospiraceae",
+                positiveRelations: [
+                    { food: "Walnut", occurrences: 1, articles: ["10.3390/nu10020244"] },
+                    { food: "Fruit", occurrences: 1, articles: ["10.3390/nu13124350"] },
+                    { food: "Vegetable", occurrences: 1, articles: ["10.3390/nu13124350"] },
+                    { food: "Peanut", occurrences: 1, articles: ["10.1016/j.clnu.2022.08.004"] },
+                    { food: "Almond", occurrences: 1, articles: ["10.1016/j.nutres.2020.11.005"] },
+                    { food: "Orange juice", occurrences: 1, articles: ["10.1021/acs.jafc.8b05408"] },
+                    { food: "Orange juice", occurrences: 1, articles: ["10.1021/acs.jafc.8b05408"] }
+                ],
+                negativeRelations: [
+                    { food: "Dairy products", occurrences: 1, articles: ["10.3390/nu15163645"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Familia bacteriana anteriormente conocida como Ruminococcaceae, productora de ácidos grasos de cadena corta"
+                }
+            },
+
+            // 13. Collinsella (ID: 102106) - Score: 192
+            "102106": {
+                name: "Collinsella",
+                positiveRelations: [
+                    { food: "Fast Food", occurrences: 2, articles: ["10.1016/j.nutres.2020.03.005"] },
+                    { food: "Walnut", occurrences: 1, articles: ["10.3390/nu11102483"] },
+                    { food: "Refined wheat Bread", occurrences: 1, articles: ["10.3945/jn.112.172668"] },
+                    { food: "Mediterranean Diet", occurrences: 1, articles: ["10.1016/j.nutres.2020.03.005"] }
+                ],
+                negativeRelations: [
+                    { food: "Dairy products", occurrences: 2, articles: ["10.3390/nu15163645"] },
+                    { food: "Mediterranean Diet", occurrences: 1, articles: ["10.1016/j.nutres.2020.03.005"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria del grupo Actinobacteria, puede estar asociada con dietas occidentales y procesadas"
+                }
+            },
+
+            // 14. Enterococcus (ID: 1350) - Score: 173
+            "1350": {
+                name: "Enterococcus",
+                positiveRelations: [
+                    { food: "WG wheat", occurrences: 2, articles: ["10.1017/S0007114507793923"] },
+                    { food: "Bran Wheat", occurrences: 1, articles: ["10.1017/S0007114507793923"] },
+                    { food: "Red wine", occurrences: 1, articles: ["10.3945/ajcn.111.027847"] },
+                    { food: "Orange juice", occurrences: 1, articles: ["10.1021/acs.jafc.8b05408"] }
+                ],
+                negativeRelations: [
+                    { food: "WG cereal", occurrences: 1, articles: ["10.3390/nu13051496"] },
+                    { food: "Sugar", occurrences: 1, articles: ["10.3390/nu13051496"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria láctica que puede ser beneficiosa pero también oportunista en ciertas condiciones"
+                }
+            },
+
+            // 15. Roseburia hominis (ID: 301301) - Score: 168
+            "301301": {
+                name: "Roseburia hominis",
+                positiveRelations: [
+                    { food: "Nuts", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Oily fish", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Vegetables", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Legumes", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Cereals", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Fish oil", occurrences: 1, articles: ["10.1136/gutjnl-2020-321643"] },
+                    { food: "Oat", occurrences: 1, articles: ["10.3389/fimmu.2021.787797"] },
+                    { food: "Plant protein", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] }
+                ],
+                negativeRelations: [],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Especie específica de Roseburia, productora de butirato, asociada con dietas ricas en fibra"
+                }
+            },
+
+            // 16. Dialister (ID: 39948) - Score: 160
+            "39948": {
+                name: "Dialister",
+                positiveRelations: [
+                    { food: "WG barley", occurrences: 2, articles: ["10.1038/ismej.2012.104"] },
+                    { food: "Walnut", occurrences: 1, articles: ["10.1093/jn/nxy004"] },
+                    { food: "Almond", occurrences: 2, articles: ["10.3390/nu10020126"] },
+                    { food: "Whole almonds", occurrences: 1, articles: ["10.3390/nu10020126"] },
+                    { food: "Oat", occurrences: 2, articles: ["10.3389/fimmu.2021.787797"] }
+                ],
+                negativeRelations: [],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria anaerobia estricta, productora de propionato, beneficiosa para el metabolismo"
+                }
+            },
+
+            // 17. Bacillota (ID: 1239) - Score: 150
+            "1239": {
+                name: "Bacillota",
+                positiveRelations: [
+                    { food: "Mediterranean Diet", occurrences: 1, articles: ["10.1016/j.nutres.2020.03.005"] }
+                ],
+                negativeRelations: [
+                    { food: "Legumes", occurrences: 1, articles: ["10.3390/nu13113992"] },
+                    { food: "Almond", occurrences: 1, articles: ["10.3390/nu12103036"] },
+                    { food: "Fats", occurrences: 1, articles: ["10.1136/gutjnl-2018-317609"] },
+                    { food: "Low fat diet", occurrences: 1, articles: ["10.1093/ajcn/nqaa046"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Phylum bacteriano dominante, anteriormente conocido como Firmicutes, incluye muchas bacterias beneficiosas"
+                }
+            },
+
+            // 18. Lactobacillus (ID: 1578) - Score: 144
+            "1578": {
+                name: "Lactobacillus",
+                positiveRelations: [
+                    { food: "WG wheat", occurrences: 1, articles: ["10.1017/S0007114507793923"] },
+                    { food: "Bran Wheat", occurrences: 1, articles: ["10.1017/S0007114507793923"] },
+                    { food: "Milk", occurrences: 2, articles: ["10.4161/gmic.21578"] },
+                    { food: "Fiber", occurrences: 2, articles: ["10.3389/fcimb.2023.1069954"] }
+                ],
+                negativeRelations: [
+                    { food: "Human Milk", occurrences: 1, articles: ["10.1001/jamanetworkopen.2023.1165"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria probiótica clásica, importante para la salud digestiva y el sistema inmune"
+                }
+            },
+
+            // 19. Lachnospira (ID: 28050) - Score: 140
+            "28050": {
+                name: "Lachnospira",
+                positiveRelations: [
+                    { food: "A&V Fats", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Almond", occurrences: 2, articles: ["10.3390/nu10020126"] },
+                    { food: "Chopped almonds", occurrences: 1, articles: ["10.3390/nu10020126"] },
+                    { food: "Whole grain", occurrences: 1, articles: ["10.3945/ajcn.116.146928"] },
+                    { food: "Low carbohydrate diet", occurrences: 1, articles: ["10.1093/ajcn/nqaa046"] },
+                    { food: "Stevia", occurrences: 1, articles: ["10.1016/j.cell.2022.07.016"] }
+                ],
+                negativeRelations: [],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria productora de ácidos grasos de cadena corta, especialmente beneficiosa con granos integrales"
+                }
+            },
+
+            // 20. Bilophila (ID: 35832) - Score: 86
+            "35832": {
+                name: "Bilophila",
+                positiveRelations: [
+                    { food: "Fast Food", occurrences: 2, articles: ["10.1016/j.nutres.2020.03.005"] }
+                ],
+                negativeRelations: [
+                    { food: "Dairy products", occurrences: 3, articles: ["10.3390/nu12072129"] },
+                    { food: "Mediterranean Diet", occurrences: 1, articles: ["10.1016/j.nutres.2020.03.005"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria tolerante a bilis, puede aumentar con dietas altas en grasas saturadas"
+                }
+            },
+
+            // 21. Oscillospira (ID: 119852) - Score: 77
+            "119852": {
+                name: "Oscillospira",
+                positiveRelations: [
+                    { food: "Chopped almonds", occurrences: 1, articles: ["10.3390/nu10020126"] },
+                    { food: "Low carbohydrate diet", occurrences: 1, articles: ["10.1093/ajcn/nqaa046"] }
+                ],
+                negativeRelations: [
+                    { food: "Walnut", occurrences: 1, articles: ["10.1093/jn/nxy004"] },
+                    { food: "Legumes", occurrences: 1, articles: ["10.3390/nu13113992"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria anaerobia estricta, su función específica aún se está investigando"
+                }
+            },
+
+            // 22. Bacteroidota (ID: 976) - Score: 77
+            "976": {
+                name: "Bacteroidota",
+                positiveRelations: [
+                    { food: "Legumes", occurrences: 1, articles: ["10.3390/nu13113992"] },
+                    { food: "Fats", occurrences: 1, articles: ["10.1136/gutjnl-2018-317609"] }
+                ],
+                negativeRelations: [
+                    { food: "WG rye", occurrences: 1, articles: ["10.3945/jn.112.172668"] },
+                    { food: "Milk", occurrences: 1, articles: ["10.4161/gmic.21578"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Phylum bacteriano importante para la digestión de polisacáridos complejos"
+                }
+            },
+
+            // 23. Prevotella (ID: 838) - Score: 77
+            "838": {
+                name: "Prevotella",
+                positiveRelations: [
+                    { food: "Plant based foods", occurrences: 1, articles: ["10.1186/s13073-022-01015-z"] },
+                    { food: "Red wine", occurrences: 1, articles: ["10.3945/ajcn.111.027847"] },
+                    { food: "Milk", occurrences: 1, articles: ["10.4161/gmic.21578"] }
+                ],
+                negativeRelations: [
+                    { food: "Fiber", occurrences: 1, articles: ["10.3389/fcimb.2023.1069954"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria asociada con dietas ricas en fibra y carbohidratos complejos"
+                }
+            },
+
+            // 24. Bacteroides fragilis (ID: 817) - Score: 72
+            "817": {
+                name: "Bacteroides fragilis",
+                positiveRelations: [
+                    { food: "Aspartame", occurrences: 1, articles: ["10.1016/j.cell.2022.07.016"] }
+                ],
+                negativeRelations: [
+                    { food: "Legumes", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Bread", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] },
+                    { food: "Almond", occurrences: 2, articles: ["10.1093/cdn/nzz079"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Especie de Bacteroides que puede tener efectos variables según el contexto"
+                }
+            },
+
+            // 25. Veillonella (ID: 29465) - Score: 72
+            "29465": {
+                name: "Veillonella",
+                positiveRelations: [
+                    { food: "WG cereal", occurrences: 1, articles: ["10.3390/nu13051496"] },
+                    { food: "Sugar", occurrences: 1, articles: ["10.3390/nu13051496"] },
+                    { food: "Brown yogurt", occurrences: 1, articles: ["10.1039/d1fo03885k"] }
+                ],
+                negativeRelations: [
+                    { food: "Dairy products", occurrences: 2, articles: ["10.3390/nu15163645"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria que metaboliza lactato, puede ser beneficiosa en ciertos contextos metabólicos"
+                }
+            },
+
+            // 26. Fusicatenibacter (ID: 1407607) - Score: 60
+            "1407607": {
+                name: "Fusicatenibacter",
+                positiveRelations: [
+                    { food: "Animal based foods", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] },
+                    { food: "Butter", occurrences: 1, articles: ["10.3389/fmicb.2023.1334623"] }
+                ],
+                negativeRelations: [
+                    { food: "Nuts", occurrences: 1, articles: ["10.1093/ajcn/nqz270"] },
+                    { food: "Seeds", occurrences: 1, articles: ["10.1093/ajcn/nqz270"] },
+                    { food: "Legumes", occurrences: 1, articles: ["10.1093/ajcn/nqz270"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria productora de butirato, generalmente considerada beneficiosa"
+                }
+            },
+
+            // 27. Butyricicoccus (ID: 580596) - Score: 43
+            "580596": {
+                name: "Butyricicoccus",
+                positiveRelations: [
+                    { food: "Legumes", occurrences: 1, articles: ["10.3390/nu13113992"] },
+                    { food: "Dairy products", occurrences: 2, articles: ["10.3390/nu15163645"] },
+                    { food: "Mediterranean Diet", occurrences: 1, articles: ["10.1016/j.nutres.2020.03.005"] }
+                ],
+                negativeRelations: [
+                    { food: "Fast Food", occurrences: 2, articles: ["10.1016/j.nutres.2020.03.005"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria productora de butirato, altamente beneficiosa para la salud intestinal"
+                }
+            },
+
+            // 28. Erysipelotrichaceae (ID: 128827) - Score: 38
+            "128827": {
+                name: "Erysipelotrichaceae",
+                positiveRelations: [
+                    { food: "Fruit", occurrences: 1, articles: ["10.3390/nu13124350"] },
+                    { food: "Vegetable", occurrences: 1, articles: ["10.3390/nu13124350"] },
+                    { food: "Animal based foods", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] }
+                ],
+                negativeRelations: [
+                    { food: "Plant based foods", occurrences: 1, articles: ["10.1136/gutjnl-2020-322670"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Familia bacteriana con efectos variables según la especie y el contexto dietético"
+                }
+            },
+
+            // 29. Escherichia (ID: 561) - Score: 38
+            "561": {
+                name: "Escherichia",
+                positiveRelations: [
+                    { food: "Sugar", occurrences: 1, articles: ["10.3390/nu13051496"] },
+                    { food: "Fast Food", occurrences: 1, articles: ["10.1016/j.nutres.2020.03.005"] }
+                ],
+                negativeRelations: [
+                    { food: "WG cereal", occurrences: 1, articles: ["10.3390/nu13051496"] },
+                    { food: "Mediterranean Diet", occurrences: 1, articles: ["10.1016/j.nutres.2020.03.005"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Género que incluye E. coli, puede ser problemático en altas concentraciones"
+                }
+            },
+
+            // 30. Shigella (ID: 620) - Score: 38
+            "620": {
+                name: "Shigella",
+                positiveRelations: [
+                    { food: "Sugar", occurrences: 1, articles: ["10.3390/nu13051496"] },
+                    { food: "Fast Food", occurrences: 1, articles: ["10.1016/j.nutres.2020.03.005"] }
+                ],
+                negativeRelations: [
+                    { food: "WG cereal", occurrences: 1, articles: ["10.3390/nu13051496"] },
+                    { food: "Mediterranean Diet", occurrences: 1, articles: ["10.1016/j.nutres.2020.03.005"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Género bacteriano potencialmente patógeno, su presencia puede indicar disbiosis"
+                }
+            },
+
+            // 31. Eubacterium (ID: 1730) - Score: 36
+            "1730": {
+                name: "Eubacterium",
+                positiveRelations: [
+                    { food: "Almond", occurrences: 1, articles: ["10.3390/nu12103036"] },
+                    { food: "Fiber", occurrences: 1, articles: ["10.1093/ajcn/nqz270"] },
+                    { food: "Yogurt", occurrences: 1, articles: ["10.1039/d1fo03885k"] },
+                    { food: "Brown yogurt", occurrences: 1, articles: ["10.1039/d1fo03885k"] }
+                ],
+                negativeRelations: [],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Género bacteriano productor de butirato, generalmente beneficioso para la salud intestinal"
+                }
+            },
+
+            // 32. Bifidobacterium pseudocatenulatum (ID: 28026) - Score: 32
+            "28026": {
+                name: "Bifidobacterium pseudocatenulatum",
+                positiveRelations: [
+                    { food: "Fish oil", occurrences: 1, articles: ["10.1136/gutjnl-2020-321643"] },
+                    { food: "Oat", occurrences: 1, articles: ["10.3389/fimmu.2021.787797"] }
+                ],
+                negativeRelations: [
+                    { food: "Peanut", occurrences: 1, articles: ["10.3390/nu16193313"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Especie específica de Bifidobacterium con propiedades probióticas"
+                }
+            },
+
+            // 33. Pseudomonadota (ID: 1224) - Score: 32
+            "1224": {
+                name: "Pseudomonadota",
+                positiveRelations: [
+                    { food: "Milk", occurrences: 1, articles: ["10.4161/gmic.21578"] },
+                    { food: "Orange juice", occurrences: 1, articles: ["10.1021/acs.jafc.8b05408"] }
+                ],
+                negativeRelations: [
+                    { food: "Legumes", occurrences: 1, articles: ["10.3390/nu13113992"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Phylum bacteriano anteriormente conocido como Proteobacteria, incluye especies diversas"
+                }
+            },
+
+            // 34. Christensenellaceae (ID: 990719) - Score: 32
+            "990719": {
+                name: "Christensenellaceae",
+                positiveRelations: [
+                    { food: "Low fat diet", occurrences: 1, articles: ["10.1007/s00394-021-02508-0"] },
+                    { food: "Orange juice", occurrences: 1, articles: ["10.1021/acs.jafc.8b05408"] }
+                ],
+                negativeRelations: [
+                    { food: "Legumes", occurrences: 1, articles: ["10.3390/nu13113992"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Familia bacteriana asociada con peso corporal saludable y metabolismo"
+                }
+            },
+
+            // 35. Dorea (ID: 189330) - Score: 27
+            "189330": {
+                name: "Dorea",
+                positiveRelations: [],
+                negativeRelations: [
+                    { food: "Walnut", occurrences: 1, articles: ["10.1093/jn/nxy004"] },
+                    { food: "Legumes", occurrences: 1, articles: ["10.3390/nu13113992"] },
+                    { food: "Low fat diet", occurrences: 1, articles: ["10.1093/ajcn/nqaa046"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria que puede estar asociada con inflamación en ciertos contextos"
+                }
+            },
+
+            // 36. Rikenellaceae (ID: 171550) - Score: 27
+            "171550": {
+                name: "Rikenellaceae",
+                positiveRelations: [
+                    { food: "Legumes", occurrences: 1, articles: ["10.3390/nu13113992"] },
+                    { food: "Fast Food", occurrences: 1, articles: ["10.1016/j.nutres.2020.03.005"] },
+                    { food: "Low carbohydrate diet", occurrences: 1, articles: ["10.1093/ajcn/nqaa046"] }
+                ],
+                negativeRelations: [],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Familia bacteriana del grupo Bacteroides con efectos variables según la dieta"
+                }
+            },
+
+            // 37. Lactococcus (ID: 1357) - Score: 19
+            "1357": {
+                name: "Lactococcus",
+                positiveRelations: [
+                    { food: "Dairy products", occurrences: 3, articles: ["10.3390/nu12072129"] }
+                ],
+                negativeRelations: [
+                    { food: "Legumes", occurrences: 1, articles: ["10.3390/nu13113992"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria láctica utilizada en la fermentación de productos lácteos"
+                }
+            },
+
+            // 38. Bilophila wadsworthia (ID: 35833) - Score: 19
+            "35833": {
+                name: "Bilophila wadsworthia",
+                positiveRelations: [
+                    { food: "Fast Food", occurrences: 1, articles: ["10.1016/j.nutres.2020.03.005"] }
+                ],
+                negativeRelations: [
+                    { food: "Dairy products", occurrences: 3, articles: ["10.3390/nu12072129"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Especie específica de Bilophila, puede aumentar con dietas altas en grasas animales"
+                }
+            },
+
+            // 39. Lactococcus lactis (ID: 1358) - Score: 19
+            "1358": {
+                name: "Lactococcus lactis",
+                positiveRelations: [
+                    { food: "Fish oil", occurrences: 1, articles: ["10.1136/gutjnl-2020-321643"] }
+                ],
+                negativeRelations: [
+                    { food: "Dairy products", occurrences: 3, articles: ["10.3390/nu12072129"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Bacteria láctica probiótica utilizada en productos fermentados"
+                }
+            },
+
+            // 40. Ruminococcus torques (ID: 33039) - Score: 19
+            "33039": {
+                name: "Ruminococcus torques",
+                positiveRelations: [
+                    { food: "Fish oil", occurrences: 2, articles: ["10.1136/gutjnl-2020-321643"] }
+                ],
+                negativeRelations: [
+                    { food: "Fermented vegetables", occurrences: 2, articles: ["10.1371/journal.pone.0275275"] }
+                ],
+                healthInfo: {
+                    status: "Healthy",
+                    diseaseOntology: "Healthy",
+                    implications: "Especie específica de Ruminococcus con efectos variables según el contexto"
+                }
+            }
+        }; 
+
+        // ===== 3. FOOD DATA (relaciones alimento -> taxones) =====
+        const foodData = {
+            // Dairy products - El alimento con más relaciones (28 relaciones)
+            "Dairy products": {
+                positiveRelations: [
+                    { taxon: "Streptococcus", taxonId: "1301", occurrences: 4 },
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 3 },
+                    { taxon: "Lactococcus", taxonId: "1357", occurrences: 3 },
+                    { taxon: "Agathobacter", taxonId: "1766253", occurrences: 2 },
+                    { taxon: "Butyricicoccus", taxonId: "580596", occurrences: 2 },
+                    { taxon: "Leuconostoc", taxonId: "1243", occurrences: 1 },
+                    { taxon: "Ruminococcus", taxonId: "1263", occurrences: 1 },
+                    { taxon: "Clostridium", taxonId: "1485", occurrences: 1 },
+                    { taxon: "Streptococcus thermophilus", taxonId: "1308", occurrences: 1 },
+                    { taxon: "Erysipelatoclostridium ramosum", taxonId: "1547", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Faecalibacterium prausnitzii", taxonId: "853", occurrences: 6 },
+                    { taxon: "Faecalibacterium", taxonId: "216851", occurrences: 3 },
+                    { taxon: "Bilophila wadsworthia", taxonId: "35833", occurrences: 3 },
+                    { taxon: "Lactococcus lactis", taxonId: "1358", occurrences: 3 },
+                    { taxon: "Bilophila", taxonId: "35832", occurrences: 3 },
+                    { taxon: "Collinsella", taxonId: "102106", occurrences: 2 },
+                    { taxon: "Veillonella", taxonId: "29465", occurrences: 2 },
+                    { taxon: "Clostridium aldenense", taxonId: "358742", occurrences: 1 },
+                    { taxon: "Acetivibrio ethanolgignens", taxonId: "290052", occurrences: 1 },
+                    { taxon: "Oscillospiraceae", taxonId: "216572", occurrences: 1 }
+                ],
+                info: {
+                    category: "Lácteos",
+                    description: "Productos derivados de la leche",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Walnut - Segundo alimento más estudiado (20 relaciones)
+            "Walnut": {
+                positiveRelations: [
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 2 },
+                    { taxon: "Roseburia", taxonId: "841", occurrences: 2 },
+                    { taxon: "Ruminococcaceae", taxonId: "216572", occurrences: 1 },
+                    { taxon: "Faecalibacterium", taxonId: "216851", occurrences: 1 },
+                    { taxon: "Clostridium", taxonId: "1485", occurrences: 1 },
+                    { taxon: "Dialister", taxonId: "39948", occurrences: 1 },
+                    { taxon: "Blautia", taxonId: "572511", occurrences: 1 },
+                    { taxon: "Collinsella", taxonId: "102106", occurrences: 1 },
+                    { taxon: "Coprococcus", taxonId: "33042", occurrences: 1 },
+                    { taxon: "Gordonibacter", taxonId: "644652", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 1 },
+                    { taxon: "Blautia", taxonId: "572511", occurrences: 1 },
+                    { taxon: "Anaerostipes", taxonId: "207244", occurrences: 1 },
+                    { taxon: "Ruminococcus", taxonId: "1263", occurrences: 1 },
+                    { taxon: "Dorea", taxonId: "189330", occurrences: 1 },
+                    { taxon: "Oscillospira", taxonId: "119852", occurrences: 1 },
+                    { taxon: "Lachnospiraceae", taxonId: "186803", occurrences: 1 }
+                ],
+                info: {
+                    category: "Frutos secos",
+                    description: "Nueces, ricas en omega-3 y fibra",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Fast Food - Alimento procesado más estudiado (13 relaciones)
+            "Fast Food": {
+                positiveRelations: [
+                    { taxon: "Collinsella", taxonId: "102106", occurrences: 2 },
+                    { taxon: "Parabacteroides", taxonId: "375288", occurrences: 2 },
+                    { taxon: "Bilophila", taxonId: "35832", occurrences: 2 },
+                    { taxon: "Clostridium bolteae", taxonId: "208479", occurrences: 1 },
+                    { taxon: "Coprobacillus", taxonId: "100883", occurrences: 1 },
+                    { taxon: "Ruminococcus gnavus", taxonId: "33038", occurrences: 1 },
+                    { taxon: "Ruminococcus", taxonId: "1263", occurrences: 1 },
+                    { taxon: "Escherichia", taxonId: "561", occurrences: 1 },
+                    { taxon: "Shigella", taxonId: "620", occurrences: 1 },
+                    { taxon: "Bilophila wadsworthia", taxonId: "35833", occurrences: 1 },
+                    { taxon: "Rikenellaceae", taxonId: "171550", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Butyricicoccus", taxonId: "580596", occurrences: 2 },
+                    { taxon: "Lachnospiraceae", taxonId: "186803", occurrences: 1 }
+                ],
+                info: {
+                    category: "Alimentos procesados",
+                    description: "Comida rápida alta en grasas saturadas y azúcares",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Red wine - Bebida más estudiada (12 relaciones)
+            "Red wine": {
+                positiveRelations: [
+                    { taxon: "Faecalibacterium prausnitzii", taxonId: "853", occurrences: 1 },
+                    { taxon: "Eubacterium hallii", taxonId: "39488", occurrences: 1 },
+                    { taxon: "Ruminococcus obeum", taxonId: "40520", occurrences: 1 },
+                    { taxon: "Ruminococcus lactaris", taxonId: "46228", occurrences: 1 },
+                    { taxon: "Anaerostipes hadrus", taxonId: "649756", occurrences: 1 },
+                    { taxon: "Alistipes putredinis", taxonId: "28117", occurrences: 1 },
+                    { taxon: "Enterococcus", taxonId: "1350", occurrences: 1 },
+                    { taxon: "Prevotella", taxonId: "838", occurrences: 1 },
+                    { taxon: "Bacteroides", taxonId: "816", occurrences: 2 },
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 2 }
+                ],
+                negativeRelations: [
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 1 }
+                ],
+                info: {
+                    category: "Bebidas",
+                    description: "Vino tinto, rico en polifenoles antioxidantes",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Fiber - Componente dietético clave (11 relaciones)
+            "Fiber": {
+                positiveRelations: [
+                    { taxon: "Lactobacillus", taxonId: "1578", occurrences: 2 },
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 3 },
+                    { taxon: "Akkermansia", taxonId: "239934", occurrences: 1 },
+                    { taxon: "Bacteroides", taxonId: "816", occurrences: 1 },
+                    { taxon: "Ruminococcus", taxonId: "1263", occurrences: 1 },
+                    { taxon: "Blautia", taxonId: "572511", occurrences: 1 },
+                    { taxon: "Faecalibacterium", taxonId: "216851", occurrences: 1 },
+                    { taxon: "Eubacterium", taxonId: "1730", occurrences: 1 },
+                    { taxon: "Roseburia", taxonId: "841", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Erysipelatoclostridium", taxonId: "3025755", occurrences: 1 },
+                    { taxon: "Klebsiella", taxonId: "570", occurrences: 1 },
+                    { taxon: "Desulfovibrio", taxonId: "872", occurrences: 1 },
+                    { taxon: "Prevotella", taxonId: "838", occurrences: 1 }
+                ],
+                info: {
+                    category: "Componente dietético",
+                    description: "Fibra dietética, crucial para la salud del microbioma",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Animal based foods - Categoría alimentaria importante (11 relaciones)
+            "Animal based foods": {
+                positiveRelations: [
+                    { taxon: "Faecalibacterium", taxonId: "216851", occurrences: 1 },
+                    { taxon: "Lachnoclostridium", taxonId: "1485", occurrences: 1 },
+                    { taxon: "Fusicatenibacter", taxonId: "1407607", occurrences: 1 },
+                    { taxon: "Romboutsia", taxonId: "1501226", occurrences: 1 },
+                    { taxon: "Actinomyces", taxonId: "1654", occurrences: 1 },
+                    { taxon: "Bifidobacterium dentium", taxonId: "1689", occurrences: 1 },
+                    { taxon: "Erysipelotrichaceae", taxonId: "128827", occurrences: 1 },
+                    { taxon: "Ruminococcus", taxonId: "1263", occurrences: 1 },
+                    { taxon: "Blautia", taxonId: "572511", occurrences: 1 },
+                    { taxon: "Streptococcus", taxonId: "1301", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 1 }
+                ],
+                info: {
+                    category: "Proteínas animales",
+                    description: "Alimentos de origen animal en general",
+                    studyType: "IVF"
+                }
+            },
+
+            // Legumes - Alimento vegetal más estudiado (26 relaciones)
+            "Legumes": {
+                positiveRelations: [
+                    { taxon: "Bacteroidetes", taxonId: "976", occurrences: 1 },
+                    { taxon: "Muribaculaceae", taxonId: "2005473", occurrences: 1 },
+                    { taxon: "Bacteroides acidifaciens", taxonId: "85831", occurrences: 1 },
+                    { taxon: "Rikenellaceae", taxonId: "171550", occurrences: 1 },
+                    { taxon: "Allobaculum", taxonId: "174708", occurrences: 1 },
+                    { taxon: "Butyricicoccus pullicaecorum", taxonId: "501571", occurrences: 1 },
+                    { taxon: "Sutterella", taxonId: "40544", occurrences: 1 },
+                    { taxon: "Roseburia hominis", taxonId: "301301", occurrences: 1 },
+                    { taxon: "Butyricicoccus", taxonId: "580596", occurrences: 1 },
+                    { taxon: "Streptococcus", taxonId: "1301", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Proteobacteria", taxonId: "1224", occurrences: 1 },
+                    { taxon: "Firmicutes", taxonId: "1239", occurrences: 1 },
+                    { taxon: "Oscillospira", taxonId: "119852", occurrences: 1 },
+                    { taxon: "Ruminococcus gnavus", taxonId: "33038", occurrences: 1 },
+                    { taxon: "Dorea", taxonId: "189330", occurrences: 1 },
+                    { taxon: "Lactococcus", taxonId: "1357", occurrences: 1 },
+                    { taxon: "Christensenellaceae", taxonId: "990719", occurrences: 1 },
+                    { taxon: "Streptococcus", taxonId: "1301", occurrences: 1 },
+                    { taxon: "E. coli", taxonId: "562", occurrences: 1 },
+                    { taxon: "Bacteroides fragilis", taxonId: "817", occurrences: 1 },
+                    { taxon: "Parabacteroides", taxonId: "375288", occurrences: 1 },
+                    { taxon: "Nuts", taxonId: "29270", occurrences: 1 },
+                    { taxon: "Seeds", taxonId: "29270", occurrences: 1 },
+                    { taxon: "Fusicatenibacter", taxonId: "1407607", occurrences: 3 }
+                ],
+                info: {
+                    category: "Alimentos vegetales",
+                    description: "Legumbres, ricas en fibra y proteína vegetal",
+                    studyType: "Animal"
+                }
+            },
+
+            // Almond - Fruto seco muy estudiado (22 relaciones)
+            "Almond": {
+                positiveRelations: [
+                    { taxon: "Lachnospira", taxonId: "28050", occurrences: 2 },
+                    { taxon: "Roseburia", taxonId: "841", occurrences: 2 },
+                    { taxon: "Dialister", taxonId: "39948", occurrences: 2 },
+                    { taxon: "Clostridium", taxonId: "1485", occurrences: 1 },
+                    { taxon: "Oscillospira", taxonId: "119852", occurrences: 1 },
+                    { taxon: "Ruminococcus", taxonId: "1263", occurrences: 1 },
+                    { taxon: "Eubacterium", taxonId: "1730", occurrences: 1 },
+                    { taxon: "Ruminiclostridium", taxonId: "1508657", occurrences: 1 },
+                    { taxon: "Ruminococcaceae NK4A214", taxonId: "216572", occurrences: 1 },
+                    { taxon: "Firmicutes", taxonId: "1239", occurrences: 1 },
+                    { taxon: "Bacteroidetes", taxonId: "976", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Bacteroides fragilis", taxonId: "817", occurrences: 2 },
+                    { taxon: "Actinobacteria", taxonId: "201174", occurrences: 1 },
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 1 },
+                    { taxon: "Parabacteroides", taxonId: "375288", occurrences: 1 },
+                    { taxon: "Collinsella", taxonId: "102106", occurrences: 1 },
+                    { taxon: "Dorea", taxonId: "189330", occurrences: 1 },
+                    { taxon: "Blautia", taxonId: "572511", occurrences: 1 }
+                ],
+                info: {
+                    category: "Frutos secos",
+                    description: "Almendras, ricas en grasas saludables y fibra",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Low fat diet - Patrón dietético importante (21 relaciones)
+            "Low fat diet": {
+                positiveRelations: [
+                    { taxon: "Bacilli", taxonId: "1239", occurrences: 1 },
+                    { taxon: "Lactobacillales", taxonId: "186826", occurrences: 1 },
+                    { taxon: "Christensenellaceae", taxonId: "990719", occurrences: 1 },
+                    { taxon: "Streptococcaceae", taxonId: "1300", occurrences: 1 },
+                    { taxon: "Streptococcus", taxonId: "1301", occurrences: 1 },
+                    { taxon: "Christensenella", taxonId: "990721", occurrences: 1 },
+                    { taxon: "Alistipes inops", taxonId: "1501391", occurrences: 1 },
+                    { taxon: "Blautia", taxonId: "572511", occurrences: 1 },
+                    { taxon: "Faecalibacterium", taxonId: "216851", occurrences: 1 },
+                    { taxon: "Bacteroides clarus", taxonId: "626929", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Actinobacteria", taxonId: "201174", occurrences: 1 },
+                    { taxon: "Bifidobacteriales", taxonId: "85004", occurrences: 1 },
+                    { taxon: "Bifidobacteriaceae", taxonId: "31953", occurrences: 1 },
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 1 },
+                    { taxon: "Firmicutes", taxonId: "1239", occurrences: 1 },
+                    { taxon: "Clostridia", taxonId: "186801", occurrences: 1 },
+                    { taxon: "Lachnospiraceae", taxonId: "186803", occurrences: 1 },
+                    { taxon: "Dorea", taxonId: "189330", occurrences: 1 },
+                    { taxon: "Blautia", taxonId: "572511", occurrences: 1 },
+                    { taxon: "Ruminococcus", taxonId: "1263", occurrences: 1 },
+                    { taxon: "Bacillota", taxonId: "1239", occurrences: 1 }
+                ],
+                info: {
+                    category: "Patrón dietético",
+                    description: "Dieta baja en grasas, alta en carbohidratos",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Fish oil - Suplemento muy estudiado (32 relaciones)
+            "Fish oil": {
+                positiveRelations: [
+                    { taxon: "Bifidobacterium pseudocatenulatum", taxonId: "28026", occurrences: 1 },
+                    { taxon: "Dorea longicatena", taxonId: "88431", occurrences: 1 },
+                    { taxon: "Roseburia hominis", taxonId: "301301", occurrences: 1 },
+                    { taxon: "Ruminococcus bromii", taxonId: "40518", occurrences: 1 },
+                    { taxon: "Dorea formicigenerans", taxonId: "39486", occurrences: 1 },
+                    { taxon: "Ruminococcus torques", taxonId: "33039", occurrences: 2 },
+                    { taxon: "Ruminococcus lactaris", taxonId: "46228", occurrences: 1 },
+                    { taxon: "Anaerotruncus colihominis", taxonId: "169435", occurrences: 1 },
+                    { taxon: "Lactococcus lactis", taxonId: "1358", occurrences: 1 },
+                    { taxon: "Parasutterella excrementihominis", taxonId: "487175", occurrences: 1 },
+                    { taxon: "Roseburia intestinalis", taxonId: "166486", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Alistipes putredinis", taxonId: "28117", occurrences: 1 },
+                    { taxon: "Desulfovibrio desulfuricans", taxonId: "876", occurrences: 1 },
+                    { taxon: "Bacteroides ovatus", taxonId: "28116", occurrences: 1 },
+                    { taxon: "Veillonella parvula", taxonId: "29466", occurrences: 1 },
+                    { taxon: "Clostridium bolteae", taxonId: "208479", occurrences: 1 },
+                    { taxon: "Clostridium citroniae", taxonId: "358743", occurrences: 1 },
+                    { taxon: "Parabacteroides distasonis", taxonId: "823", occurrences: 1 },
+                    { taxon: "Haemophilus parainfluenzae", taxonId: "729", occurrences: 1 },
+                    { taxon: "Adlercreutzia equolifaciens", taxonId: "446660", occurrences: 1 },
+                    { taxon: "Bacteroides xylanisolvens", taxonId: "371601", occurrences: 1 },
+                    { taxon: "Eubacterium hallii", taxonId: "39488", occurrences: 1 }
+                ],
+                info: {
+                    category: "Suplementos",
+                    description: "Aceite de pescado rico en omega-3",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Orange juice - Bebida procesada estudiada (26 relaciones)
+            "Orange juice": {
+                positiveRelations: [
+                    { taxon: "Proteobacteria", taxonId: "1224", occurrences: 1 },
+                    { taxon: "Mogibacteriaceae", taxonId: "3030910", occurrences: 1 },
+                    { taxon: "Tissierellaceae", taxonId: "1737406", occurrences: 1 },
+                    { taxon: "Enterococcaceae", taxonId: "81852", occurrences: 1 },
+                    { taxon: "Veillonellaceae", taxonId: "31977", occurrences: 1 },
+                    { taxon: "Enterococcus", taxonId: "1350", occurrences: 1 },
+                    { taxon: "Coriobacteriaceae", taxonId: "84107", occurrences: 1 },
+                    { taxon: "Adlercreutzia", taxonId: "447020", occurrences: 1 },
+                    { taxon: "Porphyromonadaceae", taxonId: "171551", occurrences: 1 },
+                    { taxon: "Parabacteroides", taxonId: "375288", occurrences: 1 },
+                    { taxon: "Butyricimonas", taxonId: "574697", occurrences: 1 },
+                    { taxon: "Clostridiaceae", taxonId: "31979", occurrences: 1 },
+                    { taxon: "Clostridium", taxonId: "1485", occurrences: 1 },
+                    { taxon: "Ruminococcaceae", taxonId: "216572", occurrences: 1 },
+                    { taxon: "Anaerotruncus", taxonId: "244127", occurrences: 1 },
+                    { taxon: "Christensenellaceae", taxonId: "990719", occurrences: 1 },
+                    { taxon: "Lachnospiraceae", taxonId: "186803", occurrences: 1 },
+                    { taxon: "Pasteurellaceae", taxonId: "712", occurrences: 1 },
+                    { taxon: "Enterobacteriaceae", taxonId: "543", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Odoribacteraceae", taxonId: "1853231", occurrences: 1 },
+                    { taxon: "Odoribacter", taxonId: "283168", occurrences: 1 },
+                    { taxon: "Ruminococcaceae", taxonId: "216572", occurrences: 1 },
+                    { taxon: "Faecalibacterium prausnitzii", taxonId: "853", occurrences: 1 }
+                ],
+                info: {
+                    category: "Bebidas",
+                    description: "Zumo de naranja, rico en vitamina C pero alto en azúcares",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Oat - Cereal integral importante (19 relaciones)
+            "Oat": {
+                positiveRelations: [
+                    { taxon: "Akkermansia muciniphila", taxonId: "239935", occurrences: 2 },
+                    { taxon: "Roseburia", taxonId: "841", occurrences: 2 },
+                    { taxon: "Dialister", taxonId: "39948", occurrences: 2 },
+                    { taxon: "Butyrivibrio", taxonId: "830", occurrences: 2 },
+                    { taxon: "Paraprevotella", taxonId: "577309", occurrences: 1 },
+                    { taxon: "Prevotella buccae", taxonId: "28126", occurrences: 1 },
+                    { taxon: "Dialister succinatiphilus", taxonId: "487173", occurrences: 1 },
+                    { taxon: "Roseburia hominis", taxonId: "301301", occurrences: 1 },
+                    { taxon: "Butyrivibrio crossotus", taxonId: "45851", occurrences: 1 },
+                    { taxon: "Bifidobacterium pseudocatenulatum", taxonId: "28026", occurrences: 1 },
+                    { taxon: "Clostridium symbiosum", taxonId: "1512", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Megamonas hypermegale", taxonId: "158847", occurrences: 1 },
+                    { taxon: "Clostridium nexile", taxonId: "29361", occurrences: 1 },
+                    { taxon: "Roseburia inulinivorans", taxonId: "360807", occurrences: 1 }
+                ],
+                info: {
+                    category: "Cereales y granos",
+                    description: "Avena, cereal integral rico en beta-glucanos",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Peanut - Legumbre oleaginosa (11 relaciones)
+            "Peanut": {
+                positiveRelations: [
+                    { taxon: "Ruminococcaceae", taxonId: "216572", occurrences: 1 },
+                    { taxon: "Roseburia", taxonId: "841", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Coriobacteriales", taxonId: "84999", occurrences: 1 },
+                    { taxon: "Erysipelotrichales", taxonId: "526525", occurrences: 1 },
+                    { taxon: "Clostridia", taxonId: "186801", occurrences: 1 },
+                    { taxon: "Synergistia", taxonId: "649775", occurrences: 1 },
+                    { taxon: "Roseburia inulinivorans", taxonId: "360807", occurrences: 1 },
+                    { taxon: "Bifidobacterium pseudocatenulatum", taxonId: "28026", occurrences: 1 },
+                    { taxon: "Escherichia coli", taxonId: "562", occurrences: 1 },
+                    { taxon: "Ruminococcus D bicirculans", taxonId: "1263", occurrences: 1 }
+                ],
+                info: {
+                    category: "Legumbres",
+                    description: "Cacahuetes, legumbre oleaginosa rica en proteínas",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Low carbohydrate diet - Patrón dietético (14 relaciones)
+            "Low carbohydrate diet": {
+                positiveRelations: [
+                    { taxon: "Betaproteobacteria", taxonId: "28216", occurrences: 1 },
+                    { taxon: "Burkholderiales", taxonId: "80840", occurrences: 1 },
+                    { taxon: "Alcaligenaceae", taxonId: "506", occurrences: 1 },
+                    { taxon: "Sutterella", taxonId: "40544", occurrences: 1 },
+                    { taxon: "Deltaproteobacteria", taxonId: "28221", occurrences: 1 },
+                    { taxon: "Desulfovibrionales", taxonId: "213115", occurrences: 1 },
+                    { taxon: "Desulfovibrionaceae", taxonId: "194924", occurrences: 1 },
+                    { taxon: "Bilophila", taxonId: "35832", occurrences: 1 },
+                    { taxon: "Odoribacteraceae", taxonId: "1853231", occurrences: 1 },
+                    { taxon: "Butyricimonas", taxonId: "574697", occurrences: 1 },
+                    { taxon: "Desulfovibrio", taxonId: "872", occurrences: 1 },
+                    { taxon: "Rikenellaceae", taxonId: "171550", occurrences: 1 },
+                    { taxon: "Lachnospira", taxonId: "28050", occurrences: 1 },
+                    { taxon: "Oscillospira", taxonId: "119852", occurrences: 1 }
+                ],
+                negativeRelations: [],
+                info: {
+                    category: "Patrón dietético",
+                    description: "Dieta baja en carbohidratos, alta en grasas y proteínas",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Plant based foods - Categoría alimentaria vegetal (7 relaciones)
+            "Plant based foods": {
+                positiveRelations: [
+                    { taxon: "Prevotella", taxonId: "838", occurrences: 1 },
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 2 },
+                    { taxon: "Erysipelotrichaceae", taxonId: "128827", occurrences: 1 },
+                    { taxon: "Ruminococcus", taxonId: "1263", occurrences: 1 },
+                    { taxon: "Blautia", taxonId: "572511", occurrences: 1 },
+                    { taxon: "Streptococcus", taxonId: "1301", occurrences: 1 }
+                ],
+                info: {
+                    category: "Alimentos vegetales",
+                    description: "Alimentos de origen vegetal en general",
+                    studyType: "Questionnaire"
+                }
+            },
+
+            // Mediterranean Diet - Patrón dietético saludable (9 relaciones)
+            "Mediterranean Diet": {
+                positiveRelations: [
+                    { taxon: "Lachnospiraceae", taxonId: "186803", occurrences: 1 },
+                    { taxon: "Butyricicoccus", taxonId: "580596", occurrences: 1 },
+                    { taxon: "Firmicutes", taxonId: "1239", occurrences: 1 },
+                    { taxon: "Collinsella", taxonId: "102106", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Collinsella", taxonId: "102106", occurrences: 1 },
+                    { taxon: "Parabacteroides", taxonId: "375288", occurrences: 2 },
+                    { taxon: "Escherichia", taxonId: "561", occurrences: 1 },
+                    { taxon: "Shigella", taxonId: "620", occurrences: 1 },
+                    { taxon: "Bilophila", taxonId: "35832", occurrences: 1 }
+                ],
+                info: {
+                    category: "Patrón dietético",
+                    description: "Dieta mediterránea, rica en vegetales, aceite de oliva y pescado",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Fats - Macronutriente (10 relaciones)
+            "Fats": {
+                positiveRelations: [
+                    { taxon: "Alistipes", taxonId: "239759", occurrences: 1 },
+                    { taxon: "Bacteroides", taxonId: "816", occurrences: 1 },
+                    { taxon: "Bacteroidetes", taxonId: "976", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Blautia", taxonId: "572511", occurrences: 1 },
+                    { taxon: "Faecalibacterium", taxonId: "216851", occurrences: 3 },
+                    { taxon: "Firmicutes", taxonId: "1239", occurrences: 1 },
+                    { taxon: "Bacillota", taxonId: "1239", occurrences: 1 }
+                ],
+                info: {
+                    category: "Macronutrientes",
+                    description: "Grasas dietéticas en general",
+                    studyType: "Intervention"
+                }
+            },
+
+            // WG barley - Cereal integral específico (11 relaciones)
+            "WG barley": {
+                positiveRelations: [
+                    { taxon: "Blautia", taxonId: "572511", occurrences: 2 },
+                    { taxon: "Roseburia", taxonId: "841", occurrences: 4 },
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 4 },
+                    { taxon: "Dialister", taxonId: "39948", occurrences: 2 },
+                    { taxon: "Eubacterium rectale", taxonId: "39491", occurrences: 1 },
+                    { taxon: "Roseburia faecis", taxonId: "301302", occurrences: 1 }
+                ],
+                negativeRelations: [],
+                info: {
+                    category: "Cereales y granos",
+                    description: "Cebada integral, rica en beta-glucanos",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Refined wheat Bread - Alimento procesado (7 relaciones)
+            "Refined wheat Bread": {
+                positiveRelations: [
+                    { taxon: "Collinsella", taxonId: "102106", occurrences: 1 },
+                    { taxon: "Bryantella formatexigens", taxonId: "168384", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Bacteroidetes", taxonId: "976", occurrences: 1 },
+                    { taxon: "Bacteroides plebeius", taxonId: "310297", occurrences: 1 },
+                    { taxon: "Prevotella tannerae", taxonId: "76122", occurrences: 1 },
+                    { taxon: "Bacteroides vulgatus", taxonId: "821", occurrences: 1 },
+                    { taxon: "Clostridium cluster IV", taxonId: "186802", occurrences: 1 }
+                ],
+                info: {
+                    category: "Cereales procesados",
+                    description: "Pan de trigo refinado, bajo en fibra",
+                    studyType: "Intervention"
+                }
+            },
+
+            // WG cereal - Cereales integrales (6 relaciones)
+            "WG cereal": {
+                positiveRelations: [
+                    { taxon: "Lachnoclostridium", taxonId: "1485", occurrences: 1 },
+                    { taxon: "Bacteroides", taxonId: "816", occurrences: 1 },
+                    { taxon: "Veillonella", taxonId: "29465", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Escherichia", taxonId: "561", occurrences: 1 },
+                    { taxon: "Shigella", taxonId: "620", occurrences: 1 },
+                    { taxon: "Enterococcus", taxonId: "1350", occurrences: 1 }
+                ],
+                info: {
+                    category: "Cereales y granos",
+                    description: "Cereales integrales en general",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Nuts - Frutos secos en general (4 relaciones)
+            "Nuts": {
+                positiveRelations: [
+                    { taxon: "Roseburia hominis", taxonId: "301301", occurrences: 1 },
+                    { taxon: "Bacteroides", taxonId: "816", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Fusicatenibacter", taxonId: "1407607", occurrences: 1 },
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 1 }
+                ],
+                info: {
+                    category: "Frutos secos",
+                    description: "Frutos secos variados, ricos en grasas saludables",
+                    studyType: "Questionnaire"
+                }
+            },
+
+            // Sugar - Azúcar refinado (6 relaciones)
+            "Sugar": {
+                positiveRelations: [
+                    { taxon: "Escherichia", taxonId: "561", occurrences: 1 },
+                    { taxon: "Shigella", taxonId: "620", occurrences: 1 },
+                    { taxon: "Veillonella", taxonId: "29465", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 2 },
+                    { taxon: "Enterococcus", taxonId: "1350", occurrences: 1 }
+                ],
+                info: {
+                    category: "Azúcares",
+                    description: "Azúcar refinado, carbohidrato simple",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Milk - Lácteo básico (5 relaciones)
+            "Milk": {
+                positiveRelations: [
+                    { taxon: "Bacteroides", taxonId: "816", occurrences: 1 },
+                    { taxon: "Prevotella", taxonId: "838", occurrences: 1 },
+                    { taxon: "Lactobacillus", taxonId: "1578", occurrences: 2 },
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 1 },
+                    { taxon: "Proteobacteria", taxonId: "1224", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Bacteroidetes", taxonId: "976", occurrences: 1 }
+                ],
+                info: {
+                    category: "Lácteos",
+                    description: "Leche, fuente de proteínas y calcio",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Brown yogurt - Producto lácteo fermentado (5 relaciones)
+            "Brown yogurt": {
+                positiveRelations: [
+                    { taxon: "Akkermansia muciniphila", taxonId: "239935", occurrences: 1 },
+                    { taxon: "Ruminococcus", taxonId: "1263", occurrences: 1 },
+                    { taxon: "Veillonella", taxonId: "29465", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Haemophilus parainfluenzae", taxonId: "729", occurrences: 1 },
+                    { taxon: "Gemmiger formicilis", taxonId: "745368", occurrences: 1 }
+                ],
+                info: {
+                    category: "Lácteos fermentados",
+                    description: "Yogur integral, rico en probióticos",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Yogurt - Lácteo fermentado clásico (5 relaciones)
+            "Yogurt": {
+                positiveRelations: [
+                    { taxon: "Megasphaera", taxonId: "906", occurrences: 1 },
+                    { taxon: "Anaerostipes", taxonId: "207244", occurrences: 1 },
+                    { taxon: "Eubacterium", taxonId: "1730", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Haemophilus parainfluenzae", taxonId: "729", occurrences: 1 },
+                    { taxon: "Gemmiger formicilis", taxonId: "745368", occurrences: 1 }
+                ],
+                info: {
+                    category: "Lácteos fermentados",
+                    description: "Yogur tradicional, fuente de probióticos",
+                    studyType: "Intervention"
+                }
+            },
+
+            // A&V Fats - Grasas animales y vegetales (5 relaciones)
+            "A&V Fats": {
+                positiveRelations: [
+                    { taxon: "Blautia", taxonId: "572511", occurrences: 1 },
+                    { taxon: "Lachnoclostridium", taxonId: "1485", occurrences: 1 },
+                    { taxon: "Lachnospira", taxonId: "28050", occurrences: 1 },
+                    { taxon: "Roseburia", taxonId: "841", occurrences: 1 },
+                    { taxon: "Faecalibacterium prausnitzii", taxonId: "853", occurrences: 1 }
+                ],
+                negativeRelations: [],
+                info: {
+                    category: "Grasas y aceites",
+                    description: "Grasas animales y vegetales combinadas",
+                    studyType: "IVF"
+                }
+            },
+
+            // Butter - Grasa láctea (4 relaciones)
+            "Butter": {
+                positiveRelations: [
+                    { taxon: "Faecalibacterium", taxonId: "216851", occurrences: 1 },
+                    { taxon: "Lachnospiraceae", taxonId: "186803", occurrences: 1 },
+                    { taxon: "Agathobacter", taxonId: "1766253", occurrences: 1 },
+                    { taxon: "Fusicatenibacter", taxonId: "1407607", occurrences: 1 }
+                ],
+                negativeRelations: [],
+                info: {
+                    category: "Grasas y aceites",
+                    description: "Mantequilla, grasa láctea saturada",
+                    studyType: "IVF"
+                }
+            },
+
+            // Fermented dairy products - Lácteos fermentados (4 relaciones)
+            "Fermented dairy products": {
+                positiveRelations: [
+                    { taxon: "Leuconostoc", taxonId: "1243", occurrences: 1 },
+                    { taxon: "Lactobacillus delbrueckii", taxonId: "1584", occurrences: 1 },
+                    { taxon: "Leuconostocaceae", taxonId: "33958", occurrences: 1 },
+                    { taxon: "Streptococcus thermophilus", taxonId: "1308", occurrences: 1 }
+                ],
+                negativeRelations: [],
+                info: {
+                    category: "Lácteos fermentados",
+                    description: "Productos lácteos fermentados como kéfir y yogur",
+                    studyType: "Questionnaire"
+                }
+            },
+
+            // Meat - Carne en general (3 relaciones)
+            "Meat": {
+                positiveRelations: [
+                    { taxon: "Roseburia", taxonId: "841", occurrences: 2 },
+                    { taxon: "Faecalibacterium", taxonId: "216851", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Coprococcus", taxonId: "33042", occurrences: 1 }
+                ],
+                info: {
+                    category: "Proteínas animales",
+                    description: "Carne roja y blanca, fuente de proteínas",
+                    studyType: "Intervention"
+                }
+            },
+
+            // WG wheat - Trigo integral (3 relaciones)
+            "WG wheat": {
+                positiveRelations: [
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 2 },
+                    { taxon: "Lactobacillus", taxonId: "1578", occurrences: 1 },
+                    { taxon: "Enterococcus", taxonId: "1350", occurrences: 2 }
+                ],
+                negativeRelations: [],
+                info: {
+                    category: "Cereales y granos",
+                    description: "Trigo integral, rico en fibra y nutrientes",
+                    studyType: "Intervention"
+                }
+            },
+
+            // Fish - Pescado en general (3 relaciones)
+            "Fish": {
+                positiveRelations: [
+                    { taxon: "Lachnoclostridium", taxonId: "1485", occurrences: 1 },
+                    { taxon: "Ruminococcus", taxonId: "1263", occurrences: 1 }
+                ],
+                negativeRelations: [],
+                info: {
+                    category: "Proteínas animales",
+                    description: "Pescado, fuente de proteínas y omega-3",
+                    studyType: "IVF"
+                }
+            },
+
+            // Apple - Fruta específica (2 relaciones)
+            "Apple": {
+                positiveRelations: [
+                    { taxon: "Bifidobacterium", taxonId: "1678", occurrences: 1 },
+                    { taxon: "Faecalibacterium prausnitzii", taxonId: "853", occurrences: 1 }
+                ],
+                negativeRelations: [],
+                info: {
+                    category: "Frutas",
+                    description: "Manzanas, ricas en fibra y antioxidantes",
+                    studyType: "IVF"
+                }
+            },
+
+            // Vegetables - Verduras en general (2 relaciones)
+            "Vegetables": {
+                positiveRelations: [
+                    { taxon: "Lachnospiraceae", taxonId: "186803", occurrences: 1 },
+                    { taxon: "Ruminococcaceae", taxonId: "216572", occurrences: 1 },
+                    { taxon: "Erysipelotrichaceae", taxonId: "128827", occurrences: 1 },
+                    { taxon: "Roseburia hominis", taxonId: "301301", occurrences: 1 }
+                ],
+                negativeRelations: [],
+                info: {
+                    category: "Alimentos vegetales",
+                    description: "Verduras y hortalizas variadas",
+                    studyType: "Animal"
+                }
+            },
+
+            // Whole grain - Granos integrales en general (2 relaciones)
+            "Whole grain": {
+                positiveRelations: [
+                    { taxon: "Lachnospira", taxonId: "28050", occurrences: 1 }
+                ],
+                negativeRelations: [
+                    { taxon: "Enterobacteriaceae", taxonId: "543", occurrences: 1 }
+                ],
+                info: {
+                    category: "Cereales y granos",
+                    description: "Granos enteros sin procesar, ricos en fibra",
+                    studyType: "Intervention"
+                }
+            }
+        };
+
+        // Variables para búsqueda predictiva
+        let searchTimeout;
+        let currentSelectedIndex = -1;
+
+        // Funciones de búsqueda predictiva
+        function performTaxonSearch(query) {
+            if (!query || query.length < 1) {
+                hideSuggestions();
+                return;
+            }
+
+            showLoadingIndicator();
+            
+            // Simular delay de API (300ms)
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const results = searchTaxons(query);
+                displaySuggestions(results, query);
+                hideLoadingIndicator();
+            }, 300);
+        }
+
+        function searchTaxons(query) {
+            const searchTerm = query.toLowerCase().trim();
+            
+            return taxonDatabase.filter(taxon => {
+                return taxon.id.includes(searchTerm) ||
+                       taxon.name.toLowerCase().includes(searchTerm) ||
+                       taxon.fullName.toLowerCase().includes(searchTerm) ||
+                       taxon.phylum.toLowerCase().includes(searchTerm);
+            }).slice(0, 8);
+        }
+
+        function displaySuggestions(results, query) {
+            const suggestionsContainer = document.getElementById('taxon-suggestions');
+            const noResultsContainer = document.getElementById('no-results');
+            
+            if (results.length === 0) {
+                hideSuggestions();
+                noResultsContainer.classList.remove('hidden');
+                return;
+            }
+            
+            noResultsContainer.classList.add('hidden');
+            currentSelectedIndex = -1;
+            
+            const suggestionsHtml = results.map((taxon, index) => `
+                <div class="suggestion-item p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${index === currentSelectedIndex ? 'bg-blue-50' : ''}" 
+                     onclick="selectTaxon('${taxon.id}', '${taxon.name}')"
+                     data-index="${index}">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-medium text-gray-900">${highlightMatch(taxon.name, query)}</div>
+                            <div class="text-xs text-gray-500">
+                                ID: ${highlightMatch(taxon.id, query)} | ${taxon.phylum}
+                            </div>
+                            ${taxon.name !== taxon.fullName ? `<div class="text-xs text-gray-400">${taxon.fullName}</div>` : ''}
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                    </div>
+                </div>
+            `).join('');
+            
+            suggestionsContainer.innerHTML = suggestionsHtml;
+            suggestionsContainer.classList.remove('hidden');
+        }
+
+        function highlightMatch(text, query) {
+            if (!query) return text;
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>');
+        }
+
+        function selectTaxon(taxonId, taxonName) {
+            document.getElementById('taxon-search-input').value = `${taxonId} - ${taxonName}`;
+            hideSuggestions();
+            hideNoResults();
+            loadTaxonData(taxonId);
+        }
+
+        function selectTaxonFromTag(taxonId) {
+            const taxon = taxonDatabase.find(t => t.id === taxonId);
+            if (taxon) {
+                document.getElementById('taxon-search-input').value = `${taxon.id} - ${taxon.name}`;
+                loadTaxonData(taxonId);
+            }
+        }
+
+        function hideSuggestions() {
+            document.getElementById('taxon-suggestions').classList.add('hidden');
+        }
+
+        function hideNoResults() {
+            document.getElementById('no-results').classList.add('hidden');
+        }
+
+        function showLoadingIndicator() {
+            document.getElementById('search-loading').classList.remove('hidden');
+        }
+
+        function hideLoadingIndicator() {
+            document.getElementById('search-loading').classList.add('hidden');
+        }
+
+        function handleKeyboardNavigation(event) {
+            const suggestions = document.querySelectorAll('.suggestion-item');
+            
+            switch(event.key) {
+                case 'ArrowDown':
+                    event.preventDefault();
+                    currentSelectedIndex = Math.min(currentSelectedIndex + 1, suggestions.length - 1);
+                    updateSelectedSuggestion();
+                    break;
+                case 'ArrowUp':
+                    event.preventDefault();
+                    currentSelectedIndex = Math.max(currentSelectedIndex - 1, -1);
+                    updateSelectedSuggestion();
+                    break;
+                case 'Enter':
+                    event.preventDefault();
+                    if (currentSelectedIndex >= 0 && suggestions[currentSelectedIndex]) {
+                        suggestions[currentSelectedIndex].click();
+                    }
+                    break;
+                case 'Escape':
+                    hideSuggestions();
+                    hideNoResults();
+                    break;
+            }
+        }
+
+        function updateSelectedSuggestion() {
+            const suggestions = document.querySelectorAll('.suggestion-item');
+            suggestions.forEach((item, index) => {
+                if (index === currentSelectedIndex) {
+                    item.classList.add('bg-blue-50');
+                } else {
+                    item.classList.remove('bg-blue-50');
+                }
+            });
+        }
+
+        // Funciones de navegación
+        function showSection(sectionName, clickedButton) {
+        // Ocultar todas las secciones
+        document.getElementById('taxon-section').classList.add('hidden');
+        document.getElementById('food-section').classList.add('hidden');
+        
+        // Mostrar la sección seleccionada
+        document.getElementById(sectionName + '-section').classList.remove('hidden');
+        document.getElementById(sectionName + '-section').classList.add('fade-in');
+        
+        // Resetear todos los botones de navegación
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('bg-scientific-blue', 'text-white');
+            item.classList.add('text-gray-700', 'hover:bg-gray-100');
+        });
+        
+        // Activar el botón clickeado
+        if (clickedButton) {
+            clickedButton.classList.add('bg-scientific-blue', 'text-white');
+            clickedButton.classList.remove('text-gray-700', 'hover:bg-gray-100');
+        }
+    }
+
+        // Funciones para análisis por taxón
+        function loadTaxonData(taxonId) {
+            const data = foodTaxaData[taxonId];
+            if (!data) return;
+
+            document.getElementById('taxon-info').classList.remove('hidden');
+            document.getElementById('taxon-details').innerHTML = `
+                <div class="flex justify-between"><span>ID:</span><span class="font-medium">${taxonId}</span></div>
+                <div class="flex justify-between"><span>Nombre:</span><span class="font-medium">${data.name}</span></div>
+                <div class="flex justify-between"><span>Relaciones (+):</span><span class="font-medium text-green-600">${data.positiveRelations.length}</span></div>
+                <div class="flex justify-between"><span>Relaciones (-):</span><span class="font-medium text-red-600">${data.negativeRelations.length}</span></div>
+            `;
+
+            document.getElementById('relations-content').classList.remove('hidden');
+            
+            const positiveHtml = data.positiveRelations.map(rel => `
+                <div class="flex justify-between items-center p-2 bg-white rounded border border-green-300">
+                    <span class="font-medium">${rel.food}</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">${rel.occurrences} casos</span>
+                        <i class="fas fa-external-link-alt text-green-600 cursor-pointer" title="Ver artículo"></i>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('positive-relations').innerHTML = positiveHtml;
+
+            const negativeHtml = data.negativeRelations.map(rel => `
+                <div class="flex justify-between items-center p-2 bg-white rounded border border-red-300">
+                    <span class="font-medium">${rel.food}</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">${rel.occurrences} casos</span>
+                        <i class="fas fa-external-link-alt text-red-600 cursor-pointer" title="Ver artículo"></i>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('negative-relations').innerHTML = negativeHtml;
+
+            document.getElementById('network-content').classList.remove('hidden');
+            document.getElementById('central-node').textContent = data.name;
+            generateNetworkVisualization(data, 'network-nodes');
+
+            document.getElementById('health-content').classList.remove('hidden');
+            document.getElementById('health-status').innerHTML = `
+                <div class="text-sm"><strong>Estado:</strong> ${data.healthInfo.status}</div>
+            `;
+            document.getElementById('disease-ontology').innerHTML = `
+                <div class="text-sm"><strong>Código:</strong> ${data.healthInfo.diseaseOntology}</div>
+            `;
+            document.getElementById('health-implications').innerHTML = `
+                <div class="text-sm">${data.healthInfo.implications}</div>
+            `;
+        }
+
+        function generateNetworkVisualization(data, containerId) {
+            const container = document.getElementById(containerId);
+            let nodes = '';
+
+            nodes += `
+                <div class="relative">
+                    <div class="w-16 h-16 bg-scientific-blue rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+                        ${data.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div class="text-xs text-center mt-1 font-medium">${data.name}</div>
+                </div>
+            `;
+
+            data.positiveRelations.slice(0, 4).forEach(rel => {
+                nodes += `
+                    <div class="relative">
+                        <div class="w-2 h-2 bg-green-500 rounded-full absolute top-8 -left-8 z-10"></div>
+                        <div class="w-10 h-10 bg-green-100 border-2 border-green-500 rounded-full flex items-center justify-center text-green-700 text-xs font-bold">
+                            ${rel.food.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div class="text-xs text-center mt-1 w-16 truncate">${rel.food}</div>
+                    </div>
+                `;
+            });
+
+            data.negativeRelations.slice(0, 3).forEach(rel => {
+                nodes += `
+                    <div class="relative">
+                        <div class="w-2 h-2 bg-red-500 rounded-full absolute top-8 -left-8 z-10"></div>
+                        <div class="w-10 h-10 bg-red-100 border-2 border-red-500 rounded-full flex items-center justify-center text-red-700 text-xs font-bold">
+                            ${rel.food.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div class="text-xs text-center mt-1 w-16 truncate">${rel.food}</div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = nodes;
+        }
+
+        // Funciones para análisis por comida
+        function loadFoodData(foodName) {
+            const data = foodData[foodName];
+            if (!data) return;
+
+            document.getElementById('food-info').classList.remove('hidden');
+            document.getElementById('food-details').innerHTML = `
+                <div class="flex justify-between"><span>Alimento:</span><span class="font-medium">${foodName}</span></div>
+                <div class="flex justify-between"><span>Categoría:</span><span class="font-medium">${data.info.category}</span></div>
+                <div class="flex justify-between"><span>Descripción:</span><span class="font-medium">${data.info.description}</span></div>
+                <div class="flex justify-between"><span>Tipo de estudio:</span><span class="font-medium">${data.info.studyType}</span></div>
+                <div class="flex justify-between"><span>Taxones (+):</span><span class="font-medium text-green-600">${data.positiveRelations.length}</span></div>
+                <div class="flex justify-between"><span>Taxones (-):</span><span class="font-medium text-red-600">${data.negativeRelations.length}</span></div>
+            `;
+
+            document.getElementById('food-relations-content').classList.remove('hidden');
+            
+            const positiveHtml = data.positiveRelations.map(rel => `
+                <div class="flex justify-between items-center p-3 bg-white rounded border border-green-300 hover:shadow-sm transition-shadow">
+                    <div>
+                        <div class="font-medium text-gray-900">${rel.taxon}</div>
+                        <div class="text-xs text-gray-500">ID: ${rel.taxonId}</div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">${rel.occurrences}</span>
+                        <button class="text-green-600 hover:text-green-800 transition-colors" onclick="showTaxonDetails('${rel.taxonId}')" title="Ver detalles del taxón">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('food-positive-relations').innerHTML = positiveHtml;
+
+            const negativeHtml = data.negativeRelations.map(rel => `
+                <div class="flex justify-between items-center p-3 bg-white rounded border border-red-300 hover:shadow-sm transition-shadow">
+                    <div>
+                        <div class="font-medium text-gray-900">${rel.taxon}</div>
+                        <div class="text-xs text-gray-500">ID: ${rel.taxonId}</div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded font-medium">${rel.occurrences}</span>
+                        <button class="text-red-600 hover:text-red-800 transition-colors" onclick="showTaxonDetails('${rel.taxonId}')" title="Ver detalles del taxón">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('food-negative-relations').innerHTML = negativeHtml;
+
+            document.getElementById('food-network-content').classList.remove('hidden');
+            document.getElementById('food-central-node').textContent = foodName;
+            generateFoodNetworkVisualization(data, foodName, 'food-network-nodes');
+        }
+
+        function generateFoodNetworkVisualization(data, foodName, containerId) {
+            const container = document.getElementById(containerId);
+            let nodes = '';
+
+            nodes += `
+                <div class="relative">
+                    <div class="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+                        <i class="fas fa-utensils text-lg"></i>
+                    </div>
+                    <div class="text-xs text-center mt-1 font-medium w-20 truncate">${foodName}</div>
+                </div>
+            `;
+
+            data.positiveRelations.slice(0, 5).forEach(rel => {
+                nodes += `
+                    <div class="relative">
+                        <div class="w-3 h-0.5 bg-green-500 absolute top-8 -left-12 z-10"></div>
+                        <div class="w-12 h-12 bg-green-100 border-2 border-green-500 rounded-full flex items-center justify-center text-green-700 text-xs font-bold cursor-pointer hover:bg-green-200 transition-colors" 
+                             onclick="showTaxonDetails('${rel.taxonId}')" title="${rel.taxon}">
+                            <i class="fas fa-microscope"></i>
+                        </div>
+                        <div class="text-xs text-center mt-1 w-16 truncate">${rel.taxon}</div>
+                        <div class="text-xs text-center text-gray-500">${rel.occurrences}</div>
+                    </div>
+                `;
+            });
+
+            data.negativeRelations.slice(0, 4).forEach(rel => {
+                nodes += `
+                    <div class="relative">
+                        <div class="w-3 h-0.5 bg-red-500 absolute top-8 -left-12 z-10"></div>
+                        <div class="w-12 h-12 bg-red-100 border-2 border-red-500 rounded-full flex items-center justify-center text-red-700 text-xs font-bold cursor-pointer hover:bg-red-200 transition-colors"
+                             onclick="showTaxonDetails('${rel.taxonId}')" title="${rel.taxon}">
+                            <i class="fas fa-microscope"></i>
+                        </div>
+                        <div class="text-xs text-center mt-1 w-16 truncate">${rel.taxon}</div>
+                        <div class="text-xs text-center text-gray-500">${rel.occurrences}</div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = nodes;
+        }
+
+        function applyFoodFilters() {
+           const searchTerm = document.getElementById('food-search').value.toLowerCase();
+           const relationFilter = document.getElementById('relation-filter').value;
+           
+           if (!searchTerm && !relationFilter) {
+               alert('Por favor, ingrese un término de búsqueda o seleccione un tipo de relación.');
+               return;
+           }
+
+           let filteredResults = [];
+           const allFoods = Object.keys(foodData);
+           
+           allFoods.forEach(food => {
+               if (searchTerm && food.toLowerCase().includes(searchTerm)) {
+                   const data = foodData[food];
+                   let relations = [];
+                   
+                   if (relationFilter === 'positive' || !relationFilter) {
+                       relations = relations.concat(data.positiveRelations.map(r => ({...r, type: 'positive', food})));
+                   }
+                   if (relationFilter === 'negative' || !relationFilter) {
+                       relations = relations.concat(data.negativeRelations.map(r => ({...r, type: 'negative', food})));
+                   }
+                   
+                   filteredResults = filteredResults.concat(relations);
+               }
+           });
+
+           displayFilterResults(filteredResults, searchTerm, relationFilter);
+       }
+
+       function displayFilterResults(results, searchTerm, relationFilter) {
+           document.getElementById('food-relations-content').classList.remove('hidden');
+           
+           const positiveResults = results.filter(r => r.type === 'positive');
+           const negativeResults = results.filter(r => r.type === 'negative');
+
+           const positiveHtml = positiveResults.length > 0 ? positiveResults.map(rel => `
+               <div class="flex justify-between items-center p-3 bg-white rounded border border-green-300">
+                   <div>
+                       <div class="font-medium text-gray-900">${rel.taxon}</div>
+                       <div class="text-xs text-gray-500">En: ${rel.food} | ID: ${rel.taxonId}</div>
+                   </div>
+                   <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">${rel.occurrences}</span>
+               </div>
+           `).join('') : '<div class="text-sm text-gray-500 italic p-3">No se encontraron relaciones positivas</div>';
+           
+           document.getElementById('food-positive-relations').innerHTML = positiveHtml;
+
+           const negativeHtml = negativeResults.length > 0 ? negativeResults.map(rel => `
+               <div class="flex justify-between items-center p-3 bg-white rounded border border-red-300">
+                   <div>
+                       <div class="font-medium text-gray-900">${rel.taxon}</div>
+                       <div class="text-xs text-gray-500">En: ${rel.food} | ID: ${rel.taxonId}</div>
+                   </div>
+                   <span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">${rel.occurrences}</span>
+               </div>
+           `).join('') : '<div class="text-sm text-gray-500 italic p-3">No se encontraron relaciones negativas</div>';
+           
+           document.getElementById('food-negative-relations').innerHTML = negativeHtml;
+       }
+
+       function showTaxonDetails(taxonId) {
+           showSection('taxon');
+           document.getElementById('taxon-search-input').value = '';
+           setTimeout(() => {
+               const taxon = taxonDatabase.find(t => t.id === taxonId);
+               if (taxon) {
+                   document.getElementById('taxon-search-input').value = `${taxon.id} - ${taxon.name}`;
+               }
+               loadTaxonData(taxonId);
+           }, 100);
+           document.getElementById('taxon-section').scrollTop = 0;
+       }
+
+       function showFoodSuggestions(searchTerm) {
+           const allFoods = [
+               'Dairy products', 'Walnut', 'Animal based foods', 'Plant based foods', 
+               'WG wheat', 'Fast Food', 'Red wine', 'Fish', 'Legumes', 'Almond', 
+               'Fiber', 'Oat', 'Apple', 'Butter', 'Salmon', 'Cod', 'Nuts', 
+               'Vegetables', 'Fruits', 'Meat', 'Yogurt', 'Milk', 'Cheese'
+           ];
+           
+           const matches = allFoods.filter(food => 
+               food.toLowerCase().includes(searchTerm)
+           ).slice(0, 5);
+
+           if (matches.length > 0) {
+               console.log('Sugerencias encontradas:', matches);
+           }
+       }
+
+       function formatNumber(num) {
+           return new Intl.NumberFormat('es-ES').format(num);
+       }
+
+       function exportData(section) {
+           console.log(`Exportando datos de la sección: ${section}`);
+       }
+
+       function initializeTooltips() {
+           const tooltipElements = document.querySelectorAll('[title]');
+           tooltipElements.forEach(element => {
+               element.addEventListener('mouseenter', function() {
+                   console.log('Tooltip:', this.getAttribute('title'));
+               });
+           });
+       }
+
+       // Event Listeners
+       document.addEventListener('DOMContentLoaded', function() {
+           console.log('FoodTaxa Interface cargada correctamente');
+           
+           // Inicializar búsqueda predictiva de taxones
+           const searchInput = document.getElementById('taxon-search-input');
+           
+           if (searchInput) {
+               searchInput.addEventListener('input', function() {
+                   performTaxonSearch(this.value);
+               });
+               
+               searchInput.addEventListener('keydown', handleKeyboardNavigation);
+               
+               searchInput.addEventListener('focus', function() {
+                   if (this.value) {
+                       performTaxonSearch(this.value);
+                   }
+               });
+           }
+           
+           // Ocultar sugerencias al hacer clic fuera
+           document.addEventListener('click', function(event) {
+               if (!event.target.closest('#taxon-search-input') && !event.target.closest('#taxon-suggestions')) {
+                   hideSuggestions();
+                   hideNoResults();
+               }
+           });
+           
+           // Event listeners para análisis por comida
+           const foodSelector = document.getElementById('food-selector');
+           if (foodSelector) {
+               foodSelector.addEventListener('change', function() {
+                   const foodName = this.value;
+                   if (foodName) {
+                       loadFoodData(foodName);
+                   } else {
+                       document.getElementById('food-info').classList.add('hidden');
+                       document.getElementById('food-relations-content').classList.add('hidden');
+                       document.getElementById('food-network-content').classList.add('hidden');
+                   }
+               });
+           }
+
+           // Event listener para búsqueda de alimentos
+           const foodSearch = document.getElementById('food-search');
+           if (foodSearch) {
+               foodSearch.addEventListener('input', function() {
+                   const searchTerm = this.value.toLowerCase();
+                   if (searchTerm.length > 2) {
+                       setTimeout(() => {
+                           if (this.value.toLowerCase() === searchTerm) {
+                               showFoodSuggestions(searchTerm);
+                           }
+                       }, 300);
+                   }
+               });
+           }
+           
+           // Mostrar sección de taxón por defecto
+           showSection('taxon');
+           
+           // Inicializar tooltips
+           initializeTooltips();
+       });
+   </script>
+</body>
+</html>
+
+
+
+
